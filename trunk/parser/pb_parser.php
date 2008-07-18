@@ -10,9 +10,9 @@ class PBParser
 
     // different types
     var $scalar_types = array('double', 'float', 'int32' => 'PBInt', 'int64' => 'PBInt',
-                              'uint32', 'uint64', 'sint32', 'sint64',
+                              'uint32', 'uint64', 'sint32' => 'PBSignedInt', 'sint64' => 'PBSignedInt',
                               'fixed32', 'fixed64', 'sfixed32', 'sfixed64',
-                              'bool' => 'PBBool', 'string' => 'PBString', 'bytes');
+                              'bool' => 'PBBool', 'string' => 'PBString', 'bytes' => 'PBString');
 
     /**
      * parses the profile and generates a filename with the name
