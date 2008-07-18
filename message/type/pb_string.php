@@ -11,11 +11,12 @@ class PBString extends PBMessage
      *
      * @param array
      */
-    public function ParseFromArray(&$array)
+    public function ParseFromArray($array)
     {
         $string = '';
         // first byte is length
-        $first = array_shift($array);
+        $first = $array[$this->pointer];
+        $this->pointer++;
         $length = $this->base128->get_value($first);
 
         // now calculate the length
@@ -23,7 +24,8 @@ class PBString extends PBMessage
 
         while (true && !empty($array))
         {
-            $first = array_shift($array);
+            $first = $array[$this->pointer];
+            $this->pointer++;
             $newlength += strlen($first) / 8;
 
             $number = $this->base128->get_value($first);
@@ -37,7 +39,7 @@ class PBString extends PBMessage
             throw new Exception('Length is set to ' . $length . ' but ' . $newlength . ' available');
 
         $this->value = ($string);
-        return $string;
+        return $this->pointer;
     }
 
     /**

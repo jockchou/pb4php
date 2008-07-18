@@ -11,13 +11,15 @@ class PBInt extends PBMessage
      *
      * @param array
      */
-    public function ParseFromArray(&$array)
+    public function ParseFromArray($array)
     {
-        $first = array_shift($array);
+        $first = $array[$this->pointer];
+        $this->pointer++;
+
         $number = $this->base128->get_value($first);
 
         $this->value = $number;
-        return $number;
+        return $this->pointer;
     }
 
     /**

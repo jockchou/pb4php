@@ -36,11 +36,16 @@ abstract class PBMessage
     // 1 = byte, 2 = String
     const MODUS = 1;
 
+    // now use pointer for speed improvement
+    // pointer to begin
+    protected $pointer;
+
     /**
      * Constructor - initialize base128 class
      */
-    public function __construct()
+    public function __construct($pointer=0)
     {
+        $this->pointer = $pointer;
         $this->value = $this;
         $this->base128 = new base128varint(PBMessage::MODUS);
     }
@@ -62,7 +67,8 @@ abstract class PBMessage
     }
 
     /**
-     * Just built packages and make hex to bin
+     * Just built packages and make hex to bin.
+     *
      * @param the message string
      */
     private function built_packages($message)
@@ -179,43 +185,47 @@ abstract class PBMessage
         }
         //$type = 1;
         $array = $this->built_packages($message);
-        // no messtype set
-        $messtypes = array();
-        $length = 0;
-        $this->_ParseFromArray($array);
+        // setting pointer to 0
+        $this->pointer = 0;
+        $this->_ParseFromArray($array, count($array));
     }
 
     /**
      * Internal function
      */
-    public function ParseFromArray(&$array)
+    public function ParseFromArray($array)
     {
         // first byte is length
-        $first = array_shift($array);
+        $first = $array[$this->pointer];
+        $this->pointer++;
+
         $length = $this->base128->get_value($first);
+
         $newlength  = 0;
-        $newarray = array();
-        $i = 0;
+        $i = $this->pointer;
         $a_length = count($array);
+
         while ($newlength < $length && $i < $a_length)
         {
             $newlength += strlen($array[$i]) / 8;
             ++$i;
         }
+
         // just take the splice from this array
-        $this->_ParseFromArray(array_splice($array, 0, $i));
-        return $this;
+        $this->_ParseFromArray($array, $i);
+        return $this->pointer;
     }
 
     /**
      * Internal function
      */
-    private function _ParseFromArray(&$array)
+    private function _ParseFromArray($array, $length)
     {
-        while (!empty($array))
+        while ($this->pointer < $length)
         {
             // number from base128
-            $first = array_shift($array);
+            $first = $array[$this->pointer];
+            $this->pointer++;
             $number = $this->base128->get_value($first);
 
             // now get the message type
@@ -227,31 +237,31 @@ abstract class PBMessage
                 // field is unknown so just ignore it
                 // throw new Exception('Field ' . $messtypes['field'] . ' not present ');
                 if ($messtypes['wired'] == PBMessage::WIRED_STRING)
-                    $consume = new PBString();
+                    $consume = new PBString($this->pointer);
                 else if ($messtypes['wired'] == PBMessage::WIRED_VARINT)
-                    $consume = new PBInt();
+                    $consume = new PBInt($this->pointer);
                 // perhaps send a warning out
-                $consume->parseFromArray($array);
+                $this->pointer = $consume->ParseFromArray($array);
                 continue;
             }
 
             // now array or not
             if (is_array($this->values[$messtypes['field']]))
             {
-                $this->values[$messtypes['field']][] = new $this->fields[$messtypes['field']]();
+                $this->values[$messtypes['field']][] = new $this->fields[$messtypes['field']]($this->pointer);
+
                 $index = count($this->values[$messtypes['field']]) - 1;
                 if ($messtypes['wired'] != $this->values[$messtypes['field']][$index]->wired_type)
                     throw new Exception('Expected type:' . $messtypes['wired'] . ' but had ' . $this->fields[$messtypes['field']]->wired_type);
-                $this->values[$messtypes['field']][$index]->ParseFromArray($array);
+                $this->pointer = $this->values[$messtypes['field']][$index]->ParseFromArray($array);
             }
             else
             {
-                $this->values[$messtypes['field']] = new $this->fields[$messtypes['field']]();
+                $this->values[$messtypes['field']] = new $this->fields[$messtypes['field']]($this->pointer);
                 if ($messtypes['wired'] != $this->values[$messtypes['field']]->wired_type)
                     throw new Exception('Expected type:' . $messtypes['wired'] . ' but had ' . $this->fields[$messtypes['field']]->wired_type);
-                $this->values[$messtypes['field']]->ParseFromArray($array);
+                $this->pointer = $this->values[$messtypes['field']]->ParseFromArray($array);
             }
-
         }
     }
 
