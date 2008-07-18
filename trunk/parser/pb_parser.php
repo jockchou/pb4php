@@ -132,8 +132,8 @@ class PBParser
     private function _create_class_constructor($classfile, &$string, $classname)
     {
         $string .= '  var $wired_type = PBMessage::WIRED_STRING;' . "\n";
-        $string .= "  public function __construct()\n  {\n";
-        $string .= "    parent::__construct();\n";
+        $string .= "  public function __construct(" . '$pointer=0'  . ")\n  {\n";
+        $string .= "    parent::__construct(" . '$pointer'  . ");\n";
 
         foreach($classfile as $field)
         {
