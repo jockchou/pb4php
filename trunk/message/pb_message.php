@@ -7,6 +7,7 @@ require_once(dirname(__FILE__). '/' . 'encoding/pb_base128.php');
 require_once(dirname(__FILE__). '/' . 'type/pb_enum.php');
 require_once(dirname(__FILE__). '/' . 'type/pb_string.php');
 require_once(dirname(__FILE__). '/' . 'type/pb_int.php');
+require_once(dirname(__FILE__). '/' . 'type/pb_bool.php');
 /**
  * Abstract Message class
  * @author Nikolai Kordulla
