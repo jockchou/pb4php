@@ -168,7 +168,6 @@ abstract class PBMessage
         // no messtype set
         $messtypes = array();
         $length = 0;
-
         $this->_ParseFromArray($array);
     }
 
@@ -178,17 +177,21 @@ abstract class PBMessage
     public function ParseFromArray(&$array)
     {
         // first byte is length
-        $length = $this->base128->get_value($array[0]);
-        $array = array_slice($array, 1, count($array));
+        $first = array_shift($array);
+        $length = $this->base128->get_value($first);
         $newlength  = 0;
         $newarray = array();
-        while ($newlength < $length && !empty($array))
+        $i = 0;
+        $a_length = count($array);
+        while ($newlength < $length && $i < $a_length)
         {
-            $newlength += strlen($array[0]) / 8;
-            $newarray[] = $array[0];
-            $array = array_slice($array, 1, count($array));
+            //$first = array_shift($array);
+            $newlength += strlen($array[$i]) / 8;
+            //$newarray[] = $first;
+            ++$i;
         }
-        $this->_ParseFromArray($newarray);
+        // just take the splice from this array
+        $this->_ParseFromArray(array_splice($array, 0, $i));
         // @TODO make typecheck this means required or not perhaps leave it out
         return $this;
     }
@@ -201,8 +204,8 @@ abstract class PBMessage
         while (!empty($array))
         {
             // number from base128
-            $number = $this->base128->get_value($array[0]);
-            $array = array_slice($array, 1, count($array));
+            $first = array_shift($array);
+            $number = $this->base128->get_value($first);
 
             // now get the message type
             $messtypes = $this->get_types($number);
@@ -210,13 +213,13 @@ abstract class PBMessage
             // now make method test
             if (!isset($this->fields[$messtypes['field']]))
             {
-            	// field is unknown so just ignore it
+                // field is unknown so just ignore it
                 // throw new Exception('Field ' . $messtypes['field'] . ' not present ');
                 if ($messtypes['wired'] == PBMessage::WIRED_STRING)
-                	$consume = new PBString();
+                    $consume = new PBString();
                 else if ($messtypes['wired'] == PBMessage::WIRED_VARINT)
-                	$consume = new PBInt();
-                // perhaps send a warning out                
+                    $consume = new PBInt();
+                // perhaps send a warning out
                 $consume->parseFromArray($array);
                 continue;
             }

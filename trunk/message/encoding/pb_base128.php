@@ -74,7 +74,7 @@ class base128varint
      */
     public function get_value($string)
     {
-        $string = str_replace(' ', '', $string);
+        //$string = str_replace(' ', '', $string);
         // just make it to a 4 4 package
         if (strlen($string) % 8 != 0)
             $string = substr('00000000', 0, 8 - strlen($string) % 8) . $string;
@@ -85,11 +85,7 @@ class base128varint
         while (strlen($string) > 0)
         {
             // unset msb string
-            $newstring = '';
-            for ($i=1; $i <= 7; ++$i)
-            {
-                $newstring .= $string[$i];
-            }
+            $newstring = substr($string, 1, 7);
             $concenates[] = $newstring;
             $string = substr($string, 8);
         }
