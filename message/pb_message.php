@@ -39,6 +39,9 @@ abstract class PBMessage
     // now use pointer for speed improvement
     // pointer to begin
     protected $pointer;
+    
+    // chunk which the class not understands
+    var $chunk = array();
 
     /**
      * Constructor - initialize base128 class
@@ -164,12 +167,26 @@ abstract class PBMessage
             }
         }
 
+		$this->_serialize_chunk($stringinner);
+
         if ($this->wired_type == PBMessage::WIRED_STRING && $rec > -1)
         {
             $stringinner = $this->base128->set_value(mb_strlen($stringinner) / PBMessage::MODUS) . $stringinner;
         }
 
         return $string . $stringinner;
+    }
+
+	/**
+	 * Serializes the chunk
+	 * @param String $stringinner - String where to append the chunk
+	 */
+    public function _serialize_chunk(&$stringinner)
+    {
+    	foreach ($this->chunk as $chunk)
+    	{    		
+    		$stringinner .= $this->base128->set_value(bindec($chunk));
+    	}
     }
 
     /**
@@ -183,7 +200,6 @@ abstract class PBMessage
         {
             $message = str_replace(' ','', $message);
         }
-        //$type = 1;
         $array = $this->built_packages($message);
         // setting pointer to 0
         $this->pointer = 0;
@@ -195,6 +211,7 @@ abstract class PBMessage
      */
     public function ParseFromArray($array)
     {
+    	$this->chunk = array();
         // first byte is length
         $first = $array[$this->pointer];
         $this->pointer++;
@@ -240,8 +257,14 @@ abstract class PBMessage
                     $consume = new PBString($this->pointer);
                 else if ($messtypes['wired'] == PBMessage::WIRED_VARINT)
                     $consume = new PBInt($this->pointer);
+                else
+                	throw new Exception('I dont understand this wired code:' . $messtypes['wired']);
                 // perhaps send a warning out
+                $_oldpointer = $this->pointer - 1;
                 $this->pointer = $consume->ParseFromArray($array);
+                // now add array from _oldpointer to pointer to the chunk array
+                $this->chunk = array_merge($this->chunk, 
+                				array_slice($array,$_oldpointer, $this->pointer - $_oldpointer));
                 continue;
             }
 
