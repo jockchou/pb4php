@@ -74,31 +74,20 @@ class base128varint
      */
     public function get_value($string)
     {
-        //$string = str_replace(' ', '', $string);
-        // just make it to a 4 4 package
-        if (strlen($string) % 8 != 0)
-            $string = substr('00000000', 0, 8 - strlen($string) % 8) . $string;
-
         // now just drop the msb and reorder it + parse it in own string
-        $concenates = array();
+        $valuestring = '';
+        $string_length = strlen($string);
+        $i = 1;
 
-        while (strlen($string) > 0)
+        while ($string_length > $i)
         {
-            // unset msb string
-            $newstring = substr($string, 1, 7);
-            $concenates[] = $newstring;
-            $string = substr($string, 8);
-        }
-
-        // now add it to one big string
-        $string = '';
-        for ($i=count($concenates)-1; $i >= 0; --$i)
-        {
-            $string .= $concenates[$i];
+            // unset msb string and reorder it
+            $valuestring = substr($string, $i, 7) . $valuestring;
+            $i += 8;
         }
 
         // now interprete it
-        return bindec($string);
+        return bindec($valuestring);
     }
 
     /**

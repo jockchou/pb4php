@@ -67,24 +67,38 @@ abstract class PBMessage
      */
     private function built_packages($message)
     {
+        $ret = array();
         if (PBMessage::MODUS == 1)
         {
             $newmessage = '';
+            $package = '';
             // now convert to hex
             $newpart = '';
-            for ($i = 0; $i < mb_strlen($message); ++$i)
+            $mess_length = mb_strlen($message);
+            for ($i = 0; $i < $mess_length; ++$i)
             {
-                $newpart = dechex(ord($message[$i]));
-                if (strlen($newpart) % 2 == 1)
-                    $newpart = '0' . $newpart;
-                $newstring .= $newpart;
+                $value = decbin(ord($message[$i]));
+
+                if ($value >= 10000000)
+                {
+                    // now fill to eight with 00
+                    $package .= $value;
+                }
+                else
+                {
+                    // now fill to length of eight with 0
+                    $value = substr('00000000', 0, 8 - strlen($value) % 8) . $value;
+                    $ret[] = $package . $value;
+                    $package = '';
+                }
             }
-            $message = $newstring;
+            return $ret;
         }
 
-        $ret = array();
+
         $package = '';
-        for ($i = 0; $i < mb_strlen($message); $i=$i+2)
+        $mess_length = mb_strlen($message);
+        for ($i = 0; $i < $mess_length; $i=$i+2)
         {
             $value = decbin(hexdec(substr($message,$i, 2)));
 
