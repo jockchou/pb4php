@@ -199,14 +199,11 @@ abstract class PBMessage
         $a_length = count($array);
         while ($newlength < $length && $i < $a_length)
         {
-            //$first = array_shift($array);
             $newlength += strlen($array[$i]) / 8;
-            //$newarray[] = $first;
             ++$i;
         }
         // just take the splice from this array
         $this->_ParseFromArray(array_splice($array, 0, $i));
-        // @TODO make typecheck this means required or not perhaps leave it out
         return $this;
     }
 
@@ -285,6 +282,10 @@ abstract class PBMessage
         }
     }
 
+    /**
+     * Get a value
+     * @param id of the field
+     */
     protected function _get_value($index)
     {
         if ($this->values[$index] == null)
@@ -292,11 +293,20 @@ abstract class PBMessage
         return $this->values[$index]->value;
     }
 
+    /**
+     * Get array value
+     * @param id of the field
+     * @param value
+     */
     protected function _get_arr_value($index, $value)
     {
         return $this->values[$index][$value];
     }
 
+    /**
+     * Get array size
+     * @param id of the field
+     */
     protected function _get_arr_size($index)
     {
         return count($this->values[$index]);
