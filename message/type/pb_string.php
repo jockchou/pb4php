@@ -15,8 +15,8 @@ class PBString extends PBMessage
     {
         $string = '';
         // first byte is length
-        $length = $this->base128->get_value($array[0]);
-        $array = array_slice($array, 1, count($array));
+        $first = array_shift($array);
+        $length = $this->base128->get_value($first);
 
         // now calculate the length
         $newlength = 0;
@@ -35,8 +35,8 @@ class PBString extends PBMessage
 
         for ($i=0; $i < $newlength; ++$i)
         {
-            $number = $this->base128->get_value($array[0]);
-            $array = array_slice($array, 1, count($array));
+            $first = array_shift($array);
+            $number = $this->base128->get_value($first);
             $string .= (chr($number));
         }
 
