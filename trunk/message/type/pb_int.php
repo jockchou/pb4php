@@ -13,8 +13,8 @@ class PBInt extends PBMessage
      */
     public function ParseFromArray(&$array)
     {
-        $number = $this->base128->get_value($array[0]);
-        $array = array_slice($array, 1, count($array));
+        $first = array_shift($array);
+        $number = $this->base128->get_value($first);
 
         $this->value = $number;
         return $number;
