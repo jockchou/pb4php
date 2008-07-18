@@ -20,25 +20,21 @@ class PBString extends PBMessage
 
         // now calculate the length
         $newlength = 0;
-        for ($i=0; $i < $length; ++$i)
+
+        while (true && !empty($array))
         {
-            $newlength += strlen($array[$i]) / 8;
+            $first = array_shift($array);
+            $newlength += strlen($first) / 8;
+
+            $number = $this->base128->get_value($first);
+            $string .= (chr($number));
+
             if ($newlength >= $length)
                 break;
         }
 
         if ($newlength < $length)
-        {
-            var_dump($array);
             throw new Exception('Length is set to ' . $length . ' but ' . $newlength . ' available');
-        }
-
-        for ($i=0; $i < $newlength; ++$i)
-        {
-            $first = array_shift($array);
-            $number = $this->base128->get_value($first);
-            $string .= (chr($number));
-        }
 
         $this->value = ($string);
         return $string;
