@@ -11,15 +11,9 @@ class PBEnum extends PBMessage
      *
      * @param array
      */
-    public function ParseFromArray($array)
+    public function ParseFromArray()
     {
-        $first = $array[$this->pointer];
-        $this->pointer++;
-
-        $number = $this->base128->get_value($first);
-
-        $this->value = $number;
-        return $this->pointer;
+        $this->value = $this->reader->next();
     }
 
     /**
