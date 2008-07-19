@@ -11,15 +11,14 @@ class PBSignedInt extends PBInt
      *
      * @param array
      */
-    public function ParseFromArray($array)
+    public function ParseFromArray()
     {
-    	$this->pointer = parent::ParseFromArray($array);
+    	parent::ParseFromArray();
 		
 		$saved = $this->value;
         $this->value = round($this->value / 2);
         if ($saved % 2 == 1)
         	$this->value = -($this->value);
-        return $this->pointer;
     }
 
     /**

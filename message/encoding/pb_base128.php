@@ -77,6 +77,7 @@ class base128varint
         // now just drop the msb and reorder it + parse it in own string
         $valuestring = '';
         $string_length = strlen($string);
+        
         $i = 1;
 
         while ($string_length > $i)

@@ -11,16 +11,15 @@ class PBBool extends PBInt
      *
      * @param array
      */
-    public function ParseFromArray($array)
+    public function ParseFromArray()
     {
-    	$this->pointer = parent::ParseFromArray($array);
+    	parent::ParseFromArray($array);
 
  		if ($this->value != 0 && $this->value != 1)
 			throw new Exception('Wrong value for boolean');
 		
 		var_dump($this->value);
         $this->value = (1 == $this->value);
-        return $this->pointer;
     }
 
 }

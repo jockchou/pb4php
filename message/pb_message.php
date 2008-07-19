@@ -9,6 +9,8 @@ require_once(dirname(__FILE__). '/' . 'type/pb_string.php');
 require_once(dirname(__FILE__). '/' . 'type/pb_int.php');
 require_once(dirname(__FILE__). '/' . 'type/pb_bool.php');
 require_once(dirname(__FILE__). '/' . 'type/pb_signed_int.php');
+require_once(dirname(__FILE__). '/' . 'reader/pb_input_reader.php');
+require_once(dirname(__FILE__). '/' . 'reader/pb_input_string_reader.php');
 /**
  * Abstract Message class
  * @author Nikolai Kordulla
@@ -40,17 +42,17 @@ abstract class PBMessage
 
     // now use pointer for speed improvement
     // pointer to begin
-    protected $pointer;
+    protected $reader;
     
     // chunk which the class not understands
-    var $chunk = array();
+    var $chunk = '';
 
     /**
      * Constructor - initialize base128 class
      */
-    public function __construct($pointer=0)
+    public function __construct($reader=null)
     {
-        $this->pointer = $pointer;
+        $this->reader = $reader;
         $this->value = $this;
         $this->base128 = new base128varint(PBMessage::MODUS);
     }
@@ -71,64 +73,6 @@ abstract class PBMessage
         return $types;
     }
 
-    /**
-     * Just built packages and make hex to bin.
-     *
-     * @param the message string
-     */
-    private function built_packages($message)
-    {
-        $ret = array();
-        if (PBMessage::MODUS == 1)
-        {
-            $newmessage = '';
-            $package = '';
-            // now convert to hex
-            $newpart = '';
-            $mess_length = mb_strlen($message);
-            for ($i = 0; $i < $mess_length; ++$i)
-            {
-                $value = decbin(ord($message[$i]));
-
-                if ($value >= 10000000)
-                {
-                    // now fill to eight with 00
-                    $package .= $value;
-                }
-                else
-                {
-                    // now fill to length of eight with 0
-                    $value = substr('00000000', 0, 8 - strlen($value) % 8) . $value;
-                    $ret[] = $package . $value;
-                    $package = '';
-                }
-            }
-            return $ret;
-        }
-
-
-        $package = '';
-        $mess_length = mb_strlen($message);
-        for ($i = 0; $i < $mess_length; $i=$i+2)
-        {
-            $value = decbin(hexdec(substr($message,$i, 2)));
-
-            if (strlen($value) == 8)
-            {
-                // now fill to eight with 00
-                $package .= $value;
-            }
-            else
-            {
-                // now fill to length of eight with 0
-                $value = substr('00000000', 0, 8 - strlen($value) % 8) . $value;
-                $package .= $value;
-                $ret[] = $package;
-                $package = '';
-            }
-        }
-        return $ret;
-    }
 
     /**
      * Encodes a Message
@@ -185,10 +129,7 @@ abstract class PBMessage
 	 */
     public function _serialize_chunk(&$stringinner)
     {
-    	foreach ($this->chunk as $chunk)
-    	{    		
-    		$stringinner .= $this->base128->set_value(bindec($chunk));
-    	}
+		$stringinner .= $this->chunk;
     }
 
     /**
@@ -198,57 +139,37 @@ abstract class PBMessage
      */
     public function ParseFromString($message)
     {
-        if (PBMessage::MODUS != 1)
-        {
-            $message = str_replace(' ','', $message);
-        }
-        $array = $this->built_packages($message);
-        // setting pointer to 0
-        $this->pointer = 0;
-        $this->_ParseFromArray($array, count($array));
+    	$this->reader = new PBInputStringReader($message);
+        $this->_ParseFromArray();
     }
 
     /**
      * Internal function
      */
-    public function ParseFromArray($array)
+    public function ParseFromArray()
     {
-    	$this->chunk = array();
-        // first byte is length
-        $first = $array[$this->pointer];
-        $this->pointer++;
-
-        $length = $this->base128->get_value($first);
-
-        $newlength  = 0;
-        $i = $this->pointer;
-        $a_length = count($array);
-
-        while ($newlength < $length && $i < $a_length)
-        {
-            $newlength += strlen($array[$i]) / 8;
-            ++$i;
-        }
+    	$this->chunk = '';
+		// read the length byte
+        $length = $this->reader->next();
 
         // just take the splice from this array
-        $this->_ParseFromArray($array, $i);
-        return $this->pointer;
+        $this->_ParseFromArray($length);
     }
 
     /**
      * Internal function
      */
-    private function _ParseFromArray($array, $length)
+    private function _ParseFromArray($length=99999999)
     {
-        while ($this->pointer < $length)
+    	$_begin = $this->reader->get_pointer();
+        while ($this->reader->get_pointer() - $_begin < $length)
         {
-            // number from base128
-            $first = $array[$this->pointer];
-            $this->pointer++;
-            $number = $this->base128->get_value($first);
-
+        	$next = $this->reader->next();
+        	if ($next === false)
+        		break;
+        		
             // now get the message type
-            $messtypes = $this->get_types($number);
+            $messtypes = $this->get_types($next);
 
             // now make method test
             if (!isset($this->fields[$messtypes['field']]))
@@ -256,36 +177,35 @@ abstract class PBMessage
                 // field is unknown so just ignore it
                 // throw new Exception('Field ' . $messtypes['field'] . ' not present ');
                 if ($messtypes['wired'] == PBMessage::WIRED_STRING)
-                    $consume = new PBString($this->pointer);
+                    $consume = new PBString($this->reader);
                 else if ($messtypes['wired'] == PBMessage::WIRED_VARINT)
-                    $consume = new PBInt($this->pointer);
+                    $consume = new PBInt($this->reader);
                 else
                 	throw new Exception('I dont understand this wired code:' . $messtypes['wired']);
                 // perhaps send a warning out
-                $_oldpointer = $this->pointer - 1;
-                $this->pointer = $consume->ParseFromArray($array);
+                $_oldpointer = $this->reader->get_pointer();
+                $consume->ParseFromArray();
                 // now add array from _oldpointer to pointer to the chunk array
-                $this->chunk = array_merge($this->chunk, 
-                				array_slice($array,$_oldpointer, $this->pointer - $_oldpointer));
+                $this->chunk .= $this->reader->get_message_from($_oldpointer); 
                 continue;
             }
 
             // now array or not
             if (is_array($this->values[$messtypes['field']]))
             {
-                $this->values[$messtypes['field']][] = new $this->fields[$messtypes['field']]($this->pointer);
+                $this->values[$messtypes['field']][] = new $this->fields[$messtypes['field']]($this->reader);
 
                 $index = count($this->values[$messtypes['field']]) - 1;
                 if ($messtypes['wired'] != $this->values[$messtypes['field']][$index]->wired_type)
                     throw new Exception('Expected type:' . $messtypes['wired'] . ' but had ' . $this->fields[$messtypes['field']]->wired_type);
-                $this->pointer = $this->values[$messtypes['field']][$index]->ParseFromArray($array);
+                $this->values[$messtypes['field']][$index]->ParseFromArray();
             }
             else
             {
-                $this->values[$messtypes['field']] = new $this->fields[$messtypes['field']]($this->pointer);
+                $this->values[$messtypes['field']] = new $this->fields[$messtypes['field']]($this->reader);
                 if ($messtypes['wired'] != $this->values[$messtypes['field']]->wired_type)
                     throw new Exception('Expected type:' . $messtypes['wired'] . ' but had ' . $this->fields[$messtypes['field']]->wired_type);
-                $this->pointer = $this->values[$messtypes['field']]->ParseFromArray($array);
+                $this->values[$messtypes['field']]->ParseFromArray();
             }
         }
     }
