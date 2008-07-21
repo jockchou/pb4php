@@ -43,9 +43,12 @@ abstract class PBMessage
     // now use pointer for speed improvement
     // pointer to begin
     protected $reader;
-    
+
     // chunk which the class not understands
     var $chunk = '';
+
+    // variable for Send method
+    var $_d_string = '';
 
     /**
      * Constructor - initialize base128 class
@@ -113,7 +116,7 @@ abstract class PBMessage
             }
         }
 
-		$this->_serialize_chunk($stringinner);
+        $this->_serialize_chunk($stringinner);
 
         if ($this->wired_type == PBMessage::WIRED_STRING && $rec > -1)
         {
@@ -123,13 +126,13 @@ abstract class PBMessage
         return $string . $stringinner;
     }
 
-	/**
-	 * Serializes the chunk
-	 * @param String $stringinner - String where to append the chunk
-	 */
+    /**
+     * Serializes the chunk
+     * @param String $stringinner - String where to append the chunk
+     */
     public function _serialize_chunk(&$stringinner)
     {
-		$stringinner .= $this->chunk;
+        $stringinner .= $this->chunk;
     }
 
     /**
@@ -139,7 +142,7 @@ abstract class PBMessage
      */
     public function ParseFromString($message)
     {
-    	$this->reader = new PBInputStringReader($message);
+        $this->reader = new PBInputStringReader($message);
         $this->_ParseFromArray();
     }
 
@@ -148,8 +151,8 @@ abstract class PBMessage
      */
     public function ParseFromArray()
     {
-    	$this->chunk = '';
-		// read the length byte
+        $this->chunk = '';
+        // read the length byte
         $length = $this->reader->next();
 
         // just take the splice from this array
@@ -161,13 +164,13 @@ abstract class PBMessage
      */
     private function _ParseFromArray($length=99999999)
     {
-    	$_begin = $this->reader->get_pointer();
+        $_begin = $this->reader->get_pointer();
         while ($this->reader->get_pointer() - $_begin < $length)
         {
-        	$next = $this->reader->next();
-        	if ($next === false)
-        		break;
-        		
+            $next = $this->reader->next();
+            if ($next === false)
+                break;
+
             // now get the message type
             $messtypes = $this->get_types($next);
 
@@ -181,12 +184,12 @@ abstract class PBMessage
                 else if ($messtypes['wired'] == PBMessage::WIRED_VARINT)
                     $consume = new PBInt($this->reader);
                 else
-                	throw new Exception('I dont understand this wired code:' . $messtypes['wired']);
+                    throw new Exception('I dont understand this wired code:' . $messtypes['wired']);
                 // perhaps send a warning out
                 $_oldpointer = $this->reader->get_pointer();
                 $consume->ParseFromArray();
                 // now add array from _oldpointer to pointer to the chunk array
-                $this->chunk .= $this->reader->get_message_from($_oldpointer); 
+                $this->chunk .= $this->reader->get_message_from($_oldpointer);
                 continue;
             }
 
@@ -265,6 +268,37 @@ abstract class PBMessage
     protected function _get_arr_size($index)
     {
         return count($this->values[$index]);
+    }
+
+    /**
+     * Helper method for send string
+     */
+    protected function _save_string($ch, $string)
+    {
+        $this->_d_string .= $string;
+    }
+
+    /**
+     * Sends the message via post request ['message'] to the url
+     * @param the url
+     * @param the PBMessage class where the request should be encoded
+     *
+     * @return String - the return string from the request to the url
+     */
+    public function Send($url, &$class = null)
+    {
+        $ch = curl_init();
+        $this->_d_string = '';
+
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_WRITEFUNCTION, array($this, '_save_string'));
+        curl_setopt($ch, CURLOPT_POSTFIELDS, 'message=' . urlencode($this->SerializeToString()));
+        $result = curl_exec($ch);
+
+        if ($class != null)
+            $class->parseFromString($this->_d_string);
+        return $this->_d_string;
     }
 }
 ?>

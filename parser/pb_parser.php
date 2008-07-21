@@ -140,6 +140,7 @@ class PBParser
             $classtype = "";
             $classtype = $field['value']['type'];
             $classtype = str_replace(".", "_", $classtype);
+            $_classtype = $classtype;
             // create the right namespace
             if (isset($this->scalar_types[strtolower($classtype)]))
                 $classtype = $this->scalar_types[$classtype];
@@ -164,8 +165,8 @@ class PBParser
                     && isset($field['value']['default']))
             {
                 $string .= '    $this->values["' . $field['value']['value'] . '"] = new ' . $classtype . "();\n";
-                if (isset($this->scalar_types[strtolower($classtype)]))
-                    $string .= '    $this->values["' . $field['value']['value'] . '"]->value = "' . $field['value']['default'] . '"' . ";\n";
+                if (isset($this->scalar_types[strtolower($_classtype)]))
+                    $string .= '    $this->values["' . $field['value']['value'] . '"]->value = ' . $field['value']['default'] . '' . ";\n";
                 // it must be an enum field perhaps type check
                 else
                     $string .= '    $this->values["' . $field['value']['value'] . '"]->value = ' . $classtype . '::' . $field['value']['default'] . '' . ";\n";
