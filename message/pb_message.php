@@ -276,6 +276,8 @@ abstract class PBMessage
     protected function _save_string($ch, $string)
     {
         $this->_d_string .= $string;
+        $content_length = strlen($this->_d_string);
+        return strlen($string);
     }
 
     /**
