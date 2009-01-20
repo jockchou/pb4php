@@ -3,6 +3,7 @@
  * Including of all files needed to parse messages
  * @author Nikolai Kordulla
  */
+require_once(dirname(__FILE__). '/' . 'type/pb_scalar.php');
 require_once(dirname(__FILE__). '/' . 'encoding/pb_base128.php');
 require_once(dirname(__FILE__). '/' . 'type/pb_enum.php');
 require_once(dirname(__FILE__). '/' . 'type/pb_string.php');
@@ -154,7 +155,6 @@ abstract class PBMessage
         $this->chunk = '';
         // read the length byte
         $length = $this->reader->next();
-
         // just take the splice from this array
         $this->_ParseFromArray($length);
     }
