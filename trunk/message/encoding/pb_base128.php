@@ -97,6 +97,8 @@ class base128varint
      */
     public function hex_to_str($hex)
     {
+    	$str = '';
+    	
         for($i=0;$i<mb_strlen($hex);$i+=2)
         {
             $str.=chr(hexdec(substr($hex,$i,2)));

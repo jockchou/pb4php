@@ -8,9 +8,9 @@ class Person_PhoneType extends PBEnum
 class Person_PhoneNumber extends PBMessage
 {
   var $wired_type = PBMessage::WIRED_STRING;
-  public function __construct()
+  public function __construct($reader=null)
   {
-    parent::__construct();
+    parent::__construct($reader);
     $this->fields["1"] = "PBString";
     $this->values["1"] = "";
     $this->fields["2"] = "Person_PhoneType";
@@ -38,9 +38,9 @@ class Person_PhoneNumber extends PBMessage
 class Person extends PBMessage
 {
   var $wired_type = PBMessage::WIRED_STRING;
-  public function __construct()
+  public function __construct($reader=null)
   {
-    parent::__construct();
+    parent::__construct($reader);
     $this->fields["1"] = "PBString";
     $this->values["1"] = "";
     $this->fields["2"] = "PBInt";
@@ -100,9 +100,9 @@ class Person extends PBMessage
 class AddressBook extends PBMessage
 {
   var $wired_type = PBMessage::WIRED_STRING;
-  public function __construct()
+  public function __construct($reader=null)
   {
-    parent::__construct();
+    parent::__construct($reader);
     $this->fields["1"] = "Person";
     $this->values["1"] = array();
   }
@@ -117,6 +117,30 @@ class AddressBook extends PBMessage
   function person_size()
   {
     return $this->_get_arr_size("1");
+  }
+}
+class Test extends PBMessage
+{
+  var $wired_type = PBMessage::WIRED_STRING;
+  public function __construct($reader=null)
+  {
+    parent::__construct($reader);
+    $this->fields["2"] = "PBString";
+    $this->values["2"] = array();
+  }
+  function person($offset)
+  {
+    $v = $this->_get_arr_value("2", $offset);
+    return $v->get_value();
+  }
+  function append_person($value)
+  {
+    $v = $this->_add_arr_value("2");
+    $v->set_value($value);
+  }
+  function person_size()
+  {
+    return $this->_get_arr_size("2");
   }
 }
 ?>

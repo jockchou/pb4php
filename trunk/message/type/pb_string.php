@@ -2,7 +2,7 @@
 /**
  * @author Nikolai Kordulla
  */
-class PBString extends PBMessage
+class PBString extends PBScalar
 {
     var $wired_type = PBMessage::WIRED_STRING;
 
@@ -32,7 +32,7 @@ class PBString extends PBMessage
 
         if ($rec > -1)
             $string .= $this->base128->set_value($rec << 3 | $this->wired_type);
-
+		
         // now the string
         $value = ($this->value);
 

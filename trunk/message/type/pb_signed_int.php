@@ -2,7 +2,7 @@
 /**
  * @author Nikolai Kordulla
  */
-class PBSignedInt extends PBInt
+class PBSignedInt extends PBScalar
 {
     var $wired_type = PBMessage::WIRED_VARINT;
 

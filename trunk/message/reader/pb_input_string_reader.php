@@ -34,7 +34,7 @@ class PBInputStringReader extends PBInputReader
 	        {
 	            // now fill to length of eight with 0
 	            $value = substr('00000000', 0, 8 - strlen($value) % 8) . $value;
-	            return $this->base128->get_value($package . $value);
+	            return $this->base128->get_value( $value);
 	        }
         }		
 	}

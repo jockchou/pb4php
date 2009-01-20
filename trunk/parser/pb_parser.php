@@ -23,7 +23,7 @@ class PBParser
     {
         $string = file_get_contents($protofile);
         // now take the filename
-        $filename = str_replace("\\", "/", $filename);
+        //$filename = str_replace("\\", "/", $filename);
         $filename = split("/", $protofile);
         $filename = $filename[count($filename) - 1];
         // strip the comments out of the protofile
@@ -54,13 +54,13 @@ class PBParser
             if ($classfile['type'] == 'message')
             {
                 $string .= 'class ' . $classname  . " extends PBMessage\n{\n";
-                $this->_create_class_constructor($classfile['value'], &$string, $classname);
-                $this->_create_class_body($classfile['value'], &$string, $classname);
+                $this->_create_class_constructor($classfile['value'], $string, $classname);
+                $this->_create_class_body($classfile['value'], $string, $classname);
             }
             else if ($classfile['type'] == 'enum')
             {
                 $string .= 'class ' . $classname  . " extends PBEnum\n{\n";
-                $this->_create_class_definition($classfile['value'], &$string);
+                $this->_create_class_definition($classfile['value'], $string);
             }
 
             // now create the class body with all set and get functions
@@ -80,8 +80,23 @@ class PBParser
     {
         foreach($classfile as $field)
         {
+			if (isset($field['value']['repeated']) && isset($this->scalar_types[$field['value']['type']]) )
+			{
+                $string .= '  function ' . $field['value']['name'] . '($offset)' . "\n  {\n";
+                $string .= '    $v = $this->_get_arr_value("' . $field['value']['value'] . '", $offset);'  . "\n";
+                $string .= '    return $v->get_value();' . "\n";;
+                $string .= "  }\n";
 
-            if (isset($field['value']['repeated']))
+                $string .= '  function append_' .  $field['value']['name'] . '($value)' . "\n  {\n";
+                $string .= '    $v = $this->_add_arr_value("' . $field['value']['value'] . '");'  . "\n";
+                $string .= '    $v->set_value($value);' . "\n";;
+                $string .= "  }\n";
+
+                $string .= '  function ' . $field['value']['name'] . '_size()' . "\n  {\n";
+                $string .= '    return $this->_get_arr_size("' . $field['value']['value'] . '");'  . "\n";
+                $string .= "  }\n";
+			}			
+            else if (isset($field['value']['repeated']))
             {
                 $string .= '  function ' . $field['value']['name'] . '($offset)' . "\n  {\n";
                 $string .= '    return $this->_get_arr_value("' . $field['value']['value'] . '", $offset);'  . "\n";
@@ -357,7 +372,7 @@ class PBParser
     private function _next($string, $reg = false)
     {
         $match = preg_match('/([^\s]*)/', $string, $matches, PREG_OFFSET_CAPTURE);
-        if (!match)
+        if (!$match)
             return -1;
         if (!$reg)
             return (trim($matches[0][0]));

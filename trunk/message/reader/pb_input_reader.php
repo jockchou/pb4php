@@ -29,6 +29,7 @@ abstract class PBInputReader
 	 */
 	public function get_message_from($from)
 	{
+		$string = "";
 		return substr($string, $from, $this->pointer - $from);
 	}
 

@@ -2,7 +2,7 @@
 /**
  * @author Nikolai Kordulla
  */
-class PBEnum extends PBMessage
+class PBEnum extends PBScalar
 {
     var $wired_type = PBMessage::WIRED_VARINT;
 

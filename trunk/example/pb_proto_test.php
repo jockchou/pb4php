@@ -8,9 +8,9 @@ class Person_PhoneType extends PBEnum
 class Person_PhoneNumber extends PBMessage
 {
   var $wired_type = PBMessage::WIRED_STRING;
-  public function __construct()
+  public function __construct($reader=null)
   {
-    parent::__construct();
+    parent::__construct($reader);
     $this->fields["1"] = "PBString";
     $this->values["1"] = "";
     $this->fields["2"] = "Person_PhoneType";
@@ -38,9 +38,9 @@ class Person_PhoneNumber extends PBMessage
 class Person extends PBMessage
 {
   var $wired_type = PBMessage::WIRED_STRING;
-  public function __construct()
+  public function __construct($reader=null)
   {
-    parent::__construct();
+    parent::__construct($reader);
     $this->fields["1"] = "PBString";
     $this->values["1"] = "";
     $this->fields["2"] = "PBInt";
@@ -90,9 +90,9 @@ class Person extends PBMessage
 class AddressBook extends PBMessage
 {
   var $wired_type = PBMessage::WIRED_STRING;
-  public function __construct()
+  public function __construct($reader=null)
   {
-    parent::__construct();
+    parent::__construct($reader);
     $this->fields["1"] = "Person";
     $this->values["1"] = array();
   }
