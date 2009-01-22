@@ -23,7 +23,7 @@ class PBString extends PBScalar
 		}
 		
 		// perhaps if iso saved then try to encode
-		$this->value = mb_convert_encoding($this->value, "ISO-8859-1", "UTF-8");
+		//$this->value = mb_convert_encoding($this->value, "UTF-8");
     }
 
     /**
