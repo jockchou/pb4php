@@ -207,11 +207,11 @@ class PBParser
         while (strlen($string) > 0)
         {
             $next = ($this->_next($string));
-
             if (strtolower($next) == 'message')
             {
                 $string = trim(substr($string, strlen($next)));
                 $name = $this->_next($string);
+
                 $offset = $this->_get_begin_end($string, "{", "}");
                 // now extract the content and call parse_message again
                 $content = trim(substr($string, $offset['begin'] + 1, $offset['end'] - $offset['begin'] - 2));
@@ -371,7 +371,7 @@ class PBParser
      */
     private function _next($string, $reg = false)
     {
-        $match = preg_match('/([^\s]*)/', $string, $matches, PREG_OFFSET_CAPTURE);
+        $match = preg_match('/([^\s^\{}]*)/', $string, $matches, PREG_OFFSET_CAPTURE);
         if (!$match)
             return -1;
         if (!$reg)
