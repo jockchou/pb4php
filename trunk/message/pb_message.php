@@ -3,8 +3,9 @@
  * Including of all files needed to parse messages
  * @author Nikolai Kordulla
  */
-require_once(dirname(__FILE__). '/' . 'type/pb_scalar.php');
 require_once(dirname(__FILE__). '/' . 'encoding/pb_base128.php');
+require_once(dirname(__FILE__). '/' . 'type/pb_end_group.php');
+require_once(dirname(__FILE__). '/' . 'type/pb_scalar.php');
 require_once(dirname(__FILE__). '/' . 'type/pb_enum.php');
 require_once(dirname(__FILE__). '/' . 'type/pb_string.php');
 require_once(dirname(__FILE__). '/' . 'type/pb_int.php');
@@ -184,8 +185,12 @@ abstract class PBMessage
                 else if ($messtypes['wired'] == PBMessage::WIRED_VARINT)
                     $consume = new PBInt($this->reader);
                 else
+                {
                     throw new Exception('I dont understand this wired code:' . $messtypes['wired']);
+                }
+				
                 // perhaps send a warning out
+				// @TODO SEND CHUNK WARNING
                 $_oldpointer = $this->reader->get_pointer();
                 $consume->ParseFromArray();
                 // now add array from _oldpointer to pointer to the chunk array
@@ -207,7 +212,9 @@ abstract class PBMessage
             {
                 $this->values[$messtypes['field']] = new $this->fields[$messtypes['field']]($this->reader);
                 if ($messtypes['wired'] != $this->values[$messtypes['field']]->wired_type)
+                {
                     throw new Exception('Expected type:' . $messtypes['wired'] . ' but had ' . $this->fields[$messtypes['field']]->wired_type);
+                }
                 $this->values[$messtypes['field']]->ParseFromArray();
             }
         }
