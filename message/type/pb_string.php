@@ -16,11 +16,14 @@ class PBString extends PBScalar
         $this->value = '';
         // first byte is length
         $length = $this->reader->next();
-
+		
 		for ($i=0; $i < $length; ++$i)
 		{
-            $this->value .= (chr($this->reader->next()));
+            $this->value .= (chr($this->reader->next(true)));
 		}
+		
+		// perhaps if iso saved then try to encode
+		$this->value = mb_convert_encoding($this->value, "ISO-8859-1", "UTF-8");
     }
 
     /**
@@ -35,11 +38,11 @@ class PBString extends PBScalar
 		
         // now the string
         $value = ($this->value);
-
-        $string .= $this->base128->set_value(mb_strlen($value));
-
-        for ($i=0; $i < strlen($value); ++$i)
-            $string .= $this->base128->set_value(ord($value[$i]));
+        
+        $add = mb_convert_encoding($this->value, "UTF-8");
+        $string .= $this->base128->set_value(strlen($add));
+		$string .= $add;
+		
         return $string;
    }
 }

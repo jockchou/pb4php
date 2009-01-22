@@ -8,7 +8,7 @@ abstract class PBInputReader
 	protected $pointer = 0;
 	protected $string = '';
 	
-
+	
 	public function __construct()
 	{
 		$this->base128 = new base128varint(1);
@@ -29,8 +29,7 @@ abstract class PBInputReader
 	 */
 	public function get_message_from($from)
 	{
-		$string = "";
-		return substr($string, $from, $this->pointer - $from);
+		return substr($this->string, $from, $this->pointer - $from);
 	}
 
 	/**

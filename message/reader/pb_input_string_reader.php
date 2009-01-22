@@ -13,7 +13,11 @@ class PBInputStringReader extends PBInputReader
 		$this->length = strlen($string);
 	}
 	
-	public function next()
+	/**
+	 * get the next
+	 * @param boolean $is_string - if set to true only one byte is read
+	 */
+	public function next($is_string = false)
 	{
 		$package = '';
 		while (true)
@@ -22,11 +26,17 @@ class PBInputStringReader extends PBInputReader
 			{
 				return false;
 			}
-				
-	        $value = decbin(ord($this->string[$this->pointer]));
+			
+			$string = '';
+			$string = $this->string[$this->pointer];	        
 			$this->pointer++;
 			
-	        if ($value >= 10000000)
+			if ($is_string == true)
+				return ord($string);
+
+	        $value = decbin(ord($string));
+			
+	        if ($value >= 10000000 && $is_string == false)
 	        {
 	            // now fill to eight with 00
 	            $package .= $value;
