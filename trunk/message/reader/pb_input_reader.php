@@ -22,7 +22,16 @@ abstract class PBInputReader
 	{
 		return $this->pointer;
 	}
-
+	
+	/**
+	 * Add add to the pointer
+	 * @param int $add - int to add to the pointer
+	 */
+	public function add_pointer($add)
+	{
+		$this->pointer += $add;
+	}
+	
 	/**
 	 * Get the message from from to actual pointer
 	 * @param from 
