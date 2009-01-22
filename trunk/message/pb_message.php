@@ -4,7 +4,6 @@
  * @author Nikolai Kordulla
  */
 require_once(dirname(__FILE__). '/' . 'encoding/pb_base128.php');
-require_once(dirname(__FILE__). '/' . 'type/pb_end_group.php');
 require_once(dirname(__FILE__). '/' . 'type/pb_scalar.php');
 require_once(dirname(__FILE__). '/' . 'type/pb_enum.php');
 require_once(dirname(__FILE__). '/' . 'type/pb_string.php');
