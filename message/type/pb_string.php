@@ -17,13 +17,10 @@ class PBString extends PBScalar
         // first byte is length
         $length = $this->reader->next();
 		
-		for ($i=0; $i < $length; ++$i)
-		{
-            $this->value .= (chr($this->reader->next(true)));
-		}
-		
-		// perhaps if iso saved then try to encode
-		//$this->value = mb_convert_encoding($this->value, "UTF-8");
+		// just extract the string
+		$pointer = $this->reader->get_pointer();
+		$this->reader->add_pointer($length);
+		$this->value = $this->reader->get_message_from($pointer);
     }
 
     /**
