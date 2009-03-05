@@ -7,7 +7,10 @@ class PBParser
 {
     // the message types array of (field, param[]='repeated,required,optional')
     var $m_types = array();
-
+    
+    // the message classtype
+    var $c_types = array();
+    
     // different types
     var $scalar_types = array('double', 'float', 'int32' => 'PBInt', 'int64' => 'PBInt',
                               'uint32', 'uint64', 'sint32' => 'PBSignedInt', 'sint64' => 'PBSignedInt',
@@ -56,11 +59,13 @@ class PBParser
                 $string .= 'class ' . $classname  . " extends PBMessage\n{\n";
                 $this->_create_class_constructor($classfile['value'], $string, $classname);
                 $this->_create_class_body($classfile['value'], $string, $classname);
+                $this->c_types[$classfile['name']] = 'PBMessage';
             }
             else if ($classfile['type'] == 'enum')
             {
                 $string .= 'class ' . $classname  . " extends PBEnum\n{\n";
                 $this->_create_class_definition($classfile['value'], $string);
+                $this->c_types[$classfile['name']] = 'PBEnum';
             }
 
             // now create the class body with all set and get functions
@@ -69,7 +74,21 @@ class PBParser
         }
         file_put_contents($filename, '<?php' . "\n" . $string . '?>');
     }
-
+	
+	/**
+	 * Gets the type
+	 * @param field array
+	 * @return type
+	 */
+	private function _get_type($field)
+	{
+		if (isset($this->scalar_types[$field['value']['type']]))
+			return $this->scalar_types[$field['value']['type']];
+		else if (isset($this->c_types[$field['value']['namespace']]))
+			return $this->c_types[$field['value']['namespace']];
+		return $this->c_types[$field['value']['type']];
+	}
+	
     /**
      * Creates the class body with functions for each field
      * @param Array $classfile
@@ -80,7 +99,11 @@ class PBParser
     {
         foreach($classfile as $field)
         {
-			if (isset($field['value']['repeated']) && isset($this->scalar_types[$field['value']['type']]) )
+        	$type = $this->_get_type($field);
+        	var_dump($type);
+        	//$type = $this->_get_type($field['value']['type']);
+			if ( isset($field['value']['repeated']) && ( isset($this->scalar_types[$field['value']['type']]) 
+			    										|| $type == 'PBEnum') )
 			{
                 $string .= '  function ' . $field['value']['name'] . '($offset)' . "\n  {\n";
                 $string .= '    $v = $this->_get_arr_value("' . $field['value']['value'] . '", $offset);'  . "\n";
@@ -104,6 +127,10 @@ class PBParser
 
                 $string .= '  function add_' .  $field['value']['name'] . '()' . "\n  {\n";
                 $string .= '    return $this->_add_arr_value("' . $field['value']['value'] . '");'  . "\n";
+                $string .= "  }\n";
+
+                $string .= '  function remove_' .  $field['value']['name'] . '($offset)' . "\n  {\n";
+                $string .= '    $this->_rem_arr_value("' . $field['value']['value'] . '", $offset);'  . "\n";
                 $string .= "  }\n";
 
                 $string .= '  function ' . $field['value']['name'] . '_size()' . "\n  {\n";
