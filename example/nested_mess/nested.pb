@@ -1,1 +1,1 @@
-jKreuzverhör	äö/ß´
+jKreuzverhörhällo
