@@ -84,6 +84,10 @@ class Person extends PBMessage
   {
     return $this->_add_arr_value("4");
   }
+  function remove_phone($offset)
+  {
+    $this->_rem_arr_value("4", $offset);
+  }
   function phone_size()
   {
     return $this->_get_arr_size("4");
@@ -113,6 +117,10 @@ class AddressBook extends PBMessage
   function add_person()
   {
     return $this->_add_arr_value("1");
+  }
+  function remove_person($offset)
+  {
+    $this->_rem_arr_value("1", $offset);
   }
   function person_size()
   {
