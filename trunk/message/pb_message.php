@@ -23,6 +23,7 @@ abstract class PBMessage
     const WIRED_STRING = 2;
     const WIRED_START_GROUP = 3;
     const WIRED_END_GROUP = 4;
+    const WIRED_32BIT = 5;
 
     var $base128;
 
@@ -267,6 +268,14 @@ abstract class PBMessage
         return $this->values[$index][$value];
     }
 
+    protected function _rem_arr_value($index, $value)
+    {
+    	
+        unset($this->values[$index][$value]);
+        $this->values[$index] = array_values($this->values[$index]);
+    }
+
+
     /**
      * Get array size
      * @param id of the field
@@ -308,5 +317,72 @@ abstract class PBMessage
             $class->parseFromString($this->_d_string);
         return $this->_d_string;
     }
+    
+    /**
+     * Fix Memory Leaks with Objects in PHP 5
+     * thanks to cheton : http://code.google.com/p/pb4php/issues/detail?id=3 
+     * 
+     * http://paul-m-jones.com/?p=262
+     */
+    public function __destruct()
+    {
+        if (isset($this->reader))
+        {
+            unset($this->reader);
+        }
+        
+        if (isset($this->value))
+        {
+            unset($this->value);
+        }
+        
+        // base128
+        if (isset($this->base128))
+        {
+           unset($this->base128);
+        }
+        
+        // fields
+        if (isset($this->fields))
+        {
+            foreach ($this->fields as $name => $value)
+            {
+                unset($this->$name);
+            }
+            unset($this->fields);
+        }
+        
+        // values
+        if (isset($this->values))
+        {
+            foreach ($this->values as $name => $value)
+            {
+                if (is_array($value))
+                {
+                    foreach ($value as $name2 => $value2)
+                    {
+                        if (is_object($value2) AND method_exists($value2, '__destruct'))
+                        {
+                            $value2->__destruct();
+                        }
+                        unset($value2);
+                    }
+                    unset($value->$name2);
+                }
+                else
+                {
+                    if (is_object($value) AND method_exists($value, '__destruct'))
+                    {
+                        $value->__destruct();
+                    }
+                    unset($value);
+                }
+                unset($this->values->$name);
+            }
+            unset($this->values);
+        }
+    }
+    
+    
 }
 ?>
