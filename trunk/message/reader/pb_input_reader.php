@@ -4,11 +4,11 @@
  */
 abstract class PBInputReader
 {
-    protected $base128;
+	protected $base128;
 	protected $pointer = 0;
 	protected $string = '';
-	
-	
+
+
 	public function __construct()
 	{
 		$this->base128 = new base128varint(1);
@@ -22,7 +22,7 @@ abstract class PBInputReader
 	{
 		return $this->pointer;
 	}
-	
+
 	/**
 	 * Add add to the pointer
 	 * @param int $add - int to add to the pointer
@@ -31,7 +31,7 @@ abstract class PBInputReader
 	{
 		$this->pointer += $add;
 	}
-	
+
 	/**
 	 * Get the message from from to actual pointer
 	 * @param from 
