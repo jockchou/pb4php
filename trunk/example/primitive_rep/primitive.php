@@ -10,9 +10,9 @@ require_once('../../message/pb_message.php');
 require_once('./pb_proto_primitive.php');
 
 $book = new AddressBook();
-$book->add_person("Hello"); 
-$book->add_person("Test"); 
-$book->add_type(AddressBook_PhoneType::MOBILE);
+$book->append_person("Hello"); 
+$book->append_person("Test"); 
+$book->append_type(AddressBook_PhoneType::MOBILE);
 
 // in $ p now there is Hello
 $p = $book->person(0);

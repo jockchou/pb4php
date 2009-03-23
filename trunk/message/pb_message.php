@@ -361,7 +361,8 @@ abstract class PBMessage
                         }
                         unset($value2);
                     }
-                    unset($value->$name2);
+                    if (isset($name2))
+                    	unset($value->$name2);
                 }
                 else
                 {

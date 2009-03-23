@@ -12,15 +12,15 @@ require_once('./pb_proto_nested.php');
 
 $entry = new Entry();
 $assign = new Entry_Assign();
-$assign->add_take('Kreuzverhör');
-$assign->add_take('äö/ß´');
+$assign->append_take('Kreuzverhör');
+$assign->append_take('hällo');
 $entry->set_assign($assign);
 
 $string = $entry->SerializeToString();
 
 file_put_contents('nested.pb', $string);
 
-var_dump($string);
+//var_dump($string);
 
 // now test the reading
 $entry = new Entry();
