@@ -6,6 +6,7 @@
 require_once(dirname(__FILE__). '/' . 'encoding/pb_base128.php');
 require_once(dirname(__FILE__). '/' . 'type/pb_scalar.php');
 require_once(dirname(__FILE__). '/' . 'type/pb_enum.php');
+require_once(dirname(__FILE__). '/' . 'type/pb_bytes.php');
 require_once(dirname(__FILE__). '/' . 'type/pb_string.php');
 require_once(dirname(__FILE__). '/' . 'type/pb_int.php');
 require_once(dirname(__FILE__). '/' . 'type/pb_bool.php');
@@ -20,7 +21,7 @@ abstract class PBMessage
 {
     const WIRED_VARINT = 0;
     const WIRED_64BIT = 1;
-    const WIRED_STRING = 2;
+    const WIRED_LENGTH_DELIMITED = 2;
     const WIRED_START_GROUP = 3;
     const WIRED_END_GROUP = 4;
     const WIRED_32BIT = 5;
@@ -92,7 +93,6 @@ abstract class PBMessage
             $string .= $this->base128->set_value($rec << 3 | $this->wired_type);
         }
 
-
         $stringinner = '';
 
         foreach ($this->fields as $index => $field)
@@ -120,9 +120,9 @@ abstract class PBMessage
 
         $this->_serialize_chunk($stringinner);
 
-        if ($this->wired_type == PBMessage::WIRED_STRING && $rec > -1)
+        if ($this->wired_type == PBMessage::WIRED_LENGTH_DELIMITED && $rec > -1)
         {
-            $stringinner = $this->base128->set_value(mb_strlen($stringinner) / PBMessage::MODUS) . $stringinner;
+            $stringinner = $this->base128->set_value(strlen($stringinner) / PBMessage::MODUS) . $stringinner;
         }
 
         return $string . $stringinner;
@@ -180,17 +180,21 @@ abstract class PBMessage
             {
                 // field is unknown so just ignore it
                 // throw new Exception('Field ' . $messtypes['field'] . ' not present ');
-                if ($messtypes['wired'] == PBMessage::WIRED_STRING)
+                if ($messtypes['wired'] == PBMessage::WIRED_LENGTH_DELIMITED)
+                {
                     $consume = new PBString($this->reader);
+                }
                 else if ($messtypes['wired'] == PBMessage::WIRED_VARINT)
+                {
                     $consume = new PBInt($this->reader);
+                }
                 else
                 {
                     throw new Exception('I dont understand this wired code:' . $messtypes['wired']);
                 }
-				
+
                 // perhaps send a warning out
-				// @TODO SEND CHUNK WARNING
+                // @TODO SEND CHUNK WARNING
                 $_oldpointer = $this->reader->get_pointer();
                 $consume->ParseFromArray();
                 // now add array from _oldpointer to pointer to the chunk array
@@ -202,10 +206,11 @@ abstract class PBMessage
             if (is_array($this->values[$messtypes['field']]))
             {
                 $this->values[$messtypes['field']][] = new $this->fields[$messtypes['field']]($this->reader);
-
                 $index = count($this->values[$messtypes['field']]) - 1;
                 if ($messtypes['wired'] != $this->values[$messtypes['field']][$index]->wired_type)
+                {
                     throw new Exception('Expected type:' . $messtypes['wired'] . ' but had ' . $this->fields[$messtypes['field']]->wired_type);
+                }
                 $this->values[$messtypes['field']][$index]->ParseFromArray();
             }
             else
@@ -268,14 +273,6 @@ abstract class PBMessage
         return $this->values[$index][$value];
     }
 
-    protected function _rem_arr_value($index, $value)
-    {
-    	
-        unset($this->values[$index][$value]);
-        $this->values[$index] = array_values($this->values[$index]);
-    }
-
-
     /**
      * Get array size
      * @param id of the field
@@ -317,72 +314,5 @@ abstract class PBMessage
             $class->parseFromString($this->_d_string);
         return $this->_d_string;
     }
-    
-    /**
-     * Fix Memory Leaks with Objects in PHP 5
-     * thanks to cheton : http://code.google.com/p/pb4php/issues/detail?id=3 
-     * 
-     * http://paul-m-jones.com/?p=262
-     */
-    public function __destruct()
-    {
-        if (isset($this->reader))
-        {
-            unset($this->reader);
-        }
-        
-        if (isset($this->value))
-        {
-            unset($this->value);
-        }
-        
-        // base128
-        if (isset($this->base128))
-        {
-           unset($this->base128);
-        }
-        
-        // fields
-        if (isset($this->fields))
-        {
-            foreach ($this->fields as $name => $value)
-            {
-                unset($this->$name);
-            }
-            unset($this->fields);
-        }
-        
-        // values
-        if (isset($this->values))
-        {
-            foreach ($this->values as $name => $value)
-            {
-                if (is_array($value))
-                {
-                    foreach ($value as $name2 => $value2)
-                    {
-                        if (is_object($value2) AND method_exists($value2, '__destruct'))
-                        {
-                            $value2->__destruct();
-                        }
-                        unset($value2);
-                    }
-                    unset($value->$name2);
-                }
-                else
-                {
-                    if (is_object($value) AND method_exists($value, '__destruct'))
-                    {
-                        $value->__destruct();
-                    }
-                    unset($value);
-                }
-                unset($this->values->$name);
-            }
-            unset($this->values);
-        }
-    }
-    
-    
 }
 ?>

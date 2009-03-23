@@ -2,7 +2,7 @@
 /**
  * @author Nikolai Kordulla
  */
-class PBString extends PBScalar
+class PBBytes extends PBScalar
 {
 	var $wired_type = PBMessage::WIRED_LENGTH_DELIMITED;
 
@@ -35,12 +35,8 @@ class PBString extends PBScalar
 			$string .= $this->base128->set_value($rec << 3 | $this->wired_type);
 		}
 
-		/* Convert internal character encoding to UTF-8.
-		 * The internal character encoding can be obtained by calling mb_internal_encoding()
-		 */
-		$value = mb_convert_encoding($this->value, 'UTF-8');
-		$string .= $this->base128->set_value(strlen($value));
-		$string .= $value;
+		$string .= $this->base128->set_value(strlen($this->value));
+		$string .= $this->value;
 
 		return $string;
 	}
