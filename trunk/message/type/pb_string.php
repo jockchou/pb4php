@@ -36,7 +36,8 @@ class PBString extends PBScalar
         // now the string
         $value = ($this->value);
         
-        $add = mb_convert_encoding($this->value, "UTF-8");
+        $add = $this->value;
+
         $string .= $this->base128->set_value(strlen($add));
 		$string .= $add;
 		
