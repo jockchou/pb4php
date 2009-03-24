@@ -235,6 +235,26 @@ abstract class PBMessage
     }
 
     /**
+     * Set an array value - @TODO failure check
+     * @param int - index of the field
+     * @param int - index of the array
+     * @param object - the value
+     */
+    protected function _set_arr_value($index, $index_arr, $value)
+    {
+        $this->values[$index][$index_arr] = $value;
+    }
+
+    /**
+     * Remove the last array value
+     * @param int - index of the field
+     */
+    protected function _remove_last_arr_value($index)
+    {
+    	array_pop($this->values[$index]);
+    }
+
+    /**
      * Set an value
      * @param int - index of the field
      * @param Mixed value

@@ -115,6 +115,16 @@ class PBParser
                 $string .= '    $v->set_value($value);' . "\n";;
                 $string .= "  }\n";
 
+                $string .= '  function set_' .  $field['value']['name'] . '($index, $value)' . "\n  {\n";
+                $string .= '    $v = new $this->fields["' . $field['value']['value'] . '"]();' . "\n";
+                $string .= '    $v->set_value($value);' . "\n";
+                $string .= '    $this->_set_arr_value("' . $field['value']['value'] . '", $index, $v);'  . "\n";
+                $string .= "  }\n";
+
+                $string .= '  function remove_last_' .  $field['value']['name'] . '()' . "\n  {\n";
+                $string .= '    $this->_remove_last_arr_value("' . $field['value']['value'] . '");'  . "\n";
+                $string .= "  }\n";
+
                 $string .= '  function ' . $field['value']['name'] . '_size()' . "\n  {\n";
                 $string .= '    return $this->_get_arr_size("' . $field['value']['value'] . '");'  . "\n";
                 $string .= "  }\n";
@@ -129,8 +139,12 @@ class PBParser
                 $string .= '    return $this->_add_arr_value("' . $field['value']['value'] . '");'  . "\n";
                 $string .= "  }\n";
 
-                $string .= '  function remove_' .  $field['value']['name'] . '($offset)' . "\n  {\n";
-                $string .= '    $this->_rem_arr_value("' . $field['value']['value'] . '", $offset);'  . "\n";
+                $string .= '  function set_' .  $field['value']['name'] . '($index, $value)' . "\n  {\n";
+                $string .= '    $this->_set_arr_value("' . $field['value']['value'] . '", $index, $value);'  . "\n";
+                $string .= "  }\n";
+
+                $string .= '  function remove_last_' .  $field['value']['name'] . '()' . "\n  {\n";
+                $string .= '    $this->_remove_last_arr_value("' . $field['value']['value'] . '");'  . "\n";
                 $string .= "  }\n";
 
                 $string .= '  function ' . $field['value']['name'] . '_size()' . "\n  {\n";
