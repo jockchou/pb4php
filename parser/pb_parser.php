@@ -7,15 +7,27 @@ class PBParser
 {
     // the message types array of (field, param[]='repeated,required,optional')
     var $m_types = array();
-    
+
+    // the IMPORTED message types array of (field, param[]='repeated,required,optional')
+    var $m_types_imported = array();
+
     // the message classtype
     var $c_types = array();
-    
+
     // different types
     var $scalar_types = array('double', 'float', 'int32' => 'PBInt', 'int64' => 'PBInt',
                               'uint32', 'uint64', 'sint32' => 'PBSignedInt', 'sint64' => 'PBSignedInt',
                               'fixed32', 'fixed64', 'sfixed32', 'sfixed64',
                               'bool' => 'PBBool', 'string' => 'PBString', 'bytes' => 'PBString');
+	
+	// the created filename
+    var $created_php_file_name;
+
+	// the requires
+    var $requires = array();
+    
+    // parser array
+    var $parsers = array();
 
     /**
      * parses the profile and generates a filename with the name
@@ -39,7 +51,8 @@ class PBParser
         $name = split('\.', $filename);
         array_pop($name);
         $name = join($name, '.');
-        $this->_create_class_file('pb_proto_' . $name . '.php');
+        $this->created_php_file_name = 'pb_proto_' . $name . '.php';
+        $this->_create_class_file( $this->created_php_file_name );
     }
 
     /**
@@ -72,6 +85,14 @@ class PBParser
 
             $string .= "}\n";
         }
+
+        $requires_string = "";
+        foreach( $this->requires as $file )
+        {
+          $requires_string .= sprintf( "require_once( \"%s\" );\n", $file );
+        }
+
+        $string = $requires_string . $string;
         file_put_contents($filename, '<?php' . "\n" . $string . '?>');
     }
 	
@@ -86,7 +107,18 @@ class PBParser
 			return $this->scalar_types[$field['value']['type']];
 		else if (isset($this->c_types[$field['value']['namespace']]))
 			return $this->c_types[$field['value']['namespace']];
-		return $this->c_types[$field['value']['type']];
+		else if (isset($this->c_types[$field['value']['type']]))
+			return $this->c_types[$field['value']['type']];
+			
+		// nothing found so search in imports
+		foreach ($this->parsers as $parser)
+		{
+			$ret = $parser->_get_type($field);
+			if ($ret != false)
+				return $ret;
+		}
+			
+		return false;
 	}
 	
     /**
@@ -273,6 +305,32 @@ class PBParser
                 // removing it from string
                 $string = '' . trim(substr($string, $offset['end']));
             }
+            else if( strtolower($next) == 'import' )
+            {
+                $name = $this->_next($string);
+                $match = preg_match('/"([^"]+)";*\s?/', $string, $matches, PREG_OFFSET_CAPTURE);
+                if( !$match )
+                  throw new Exception( 'Malformed include / look at your import statement:' . $string );
+			
+                $fn = $matches[1][0];
+                if( !file_exists($fn) )
+                {
+                  throw new Exception( "Included file '{$fn}' does not exist" );
+                }
+
+                $string = trim(substr($string, $matches[0][1] + strlen($matches[0][0])));
+
+                // parse the imported file
+                $pbp = new PBParser();
+                $pbp->parse( $fn );
+				
+				// ad the parser to parser array
+				$this->parsers[] = $pbp;
+				
+                // add imported message types so PBParser knows about them
+                $this->m_types_imported = array_merge( $this->m_types_imported, $pbp->m_types );
+                $this->requires[] = $pbp->created_php_file_name;
+            }
             else
             {
                 // now a normal field
@@ -384,6 +442,37 @@ class PBParser
                 return array($type, $namespace);
             }
         }
+
+
+        // once again for imported message types
+        $namespace = '';
+        $namespace = $type;
+
+        $apath = split("\.", $path);
+        if ($apath > 1)
+        {
+            array_pop($apath);
+            $namespace = trim(trim(join($apath, '.'), '.') . '.' . $type, '.');
+        }
+
+        // try the namespace
+        foreach ($this->m_types_imported as $message)
+        {
+            if ($message['name'] == $namespace)
+            {
+                return array($type, $namespace);
+            }
+        }
+        // now try one deeper
+        $namespace  = trim($path . '.' . $namespace, '.');
+        foreach ($this->m_types_imported as $message)
+        {
+            if ($message['name'] == $namespace)
+            {
+                return array($type, $namespace);
+            }
+        }
+
 
         // @TODO TYPE CHECK
         throw new Exception('Protofile type ' . $type . ' unknown!');
