@@ -40,5 +40,13 @@ class PBBytes extends PBScalar
 
 		return $string;
 	}
+	
+	public function toJson($fieldName = "")
+	{		
+		if ($fieldName == "")
+			return  '"[BLOB] (' . strlen($this->value) . ' bytes)"';
+		else
+			return  '"' . $fieldName . '": "[BLOB] (' . strlen($this->value) . ' bytes)"';
+	}
 }
 ?>

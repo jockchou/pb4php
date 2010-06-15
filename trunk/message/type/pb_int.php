@@ -1,5 +1,6 @@
 <?php
 /**
+ * Varint type
  * @author Nikolai Kordulla
  */
 class PBInt extends PBScalar
@@ -33,6 +34,14 @@ class PBInt extends PBScalar
 		$string .= $value;
 
 		return $string;
+	}
+	
+	public function toJson($fieldName = "")
+	{		
+		if ($fieldName == "")
+			return  (int)$this->value;
+		else
+			return  '"' . $fieldName . '":' . (int)$this->value;
 	}
 }
 ?>
