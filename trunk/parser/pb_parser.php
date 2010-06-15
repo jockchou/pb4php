@@ -8,6 +8,9 @@ class PBParser
     // the message types array of (field, param[]='repeated,required,optional')
     var $m_types = array();
     
+    // the IMPORTED message types array of (field, param[]='repeated,required,optional')
+    var $m_types_imported = array();
+    
     // the message classtype
     var $c_types = array();
        
@@ -28,8 +31,19 @@ class PBParser
                               'string' 	 => 'PBString', 
                               'bytes' 	 => 'PBBytes',
     						  'enum'	 => 'PBEnum');
+
+   	// the created filename
+    var $created_php_file_name;
     
-    var $namespace = "";       
+   	// the requires
+    var $requires = array();
+    
+    // parser array
+    var $parsers = array();
+    
+    var $namespace = "";
+    
+    var $isPHP5_3 = false;
 
     /**
      * parses the profile and generates a filename with the name
@@ -38,7 +52,9 @@ class PBParser
      */
     public function parse($protofile, $outputfile = null)
     { 	    
-        $string = file_get_contents($protofile);        
+        $string = file_get_contents($protofile);
+
+        $this->isPHP5_3 = version_compare(PHP_VERSION, '5.3', '>'); 
         
         // now take the filename
         //$filename = str_replace("\\", "/", $filename);
@@ -58,6 +74,8 @@ class PBParser
         
         if (empty($outputfile))
         	$outputfile = 'pb_proto_' . $name . '.php';
+        	
+        $this->created_php_file_name = $outputfile;
         
         $this->_create_class_file($outputfile);
     }
@@ -68,25 +86,41 @@ class PBParser
      * @param String $filename - the filename of the php file
      */
     private function _create_class_file($filename)
-    {
-        $string = '';
+    {           
+    	$string = '';                    
         if (!empty($this->namespace))
         	$string .= "namespace " . str_replace("\\\\", "\\", $this->namespace) .";\n";
+        	
+        $requires_string = "";
+        foreach( $this->requires as $file )
+        {
+          $requires_string .= sprintf( "require_once( \"%s\" );\n", $file );
+        }
+
+        $string .= $requires_string;
         	
         foreach ($this->m_types as $classfile)
         {
             $classname = str_replace(".", "_", $classfile['name']);
-
+                                    
             if ($classfile['type'] == 'message')
             {
-                $string .= 'class ' . $classname  . " extends \PBMessage\n{\n";
+            	if ($this->namespace)
+                	$string .= 'class ' . $classname  . " extends \PBMessage\n{\n";
+                else	
+                	$string .= 'class ' . $classname  . " extends PBMessage\n{\n";
+                
                 $this->_create_class_constructor($classfile['value'], $string, $classname);
                 $this->_create_class_body($classfile['value'], $string, $classname);
                 $this->c_types[$classfile['name']] = 'PBMessage';
             }
             else if ($classfile['type'] == 'enum')
             {
-                $string .= 'class ' . $classname  . " extends \PBEnum\n{\n";
+            	if ($this->namespace)
+                	$string .= 'class ' . $classname  . " extends \PBEnum\n{\n";
+                else
+                	$string .= 'class ' . $classname  . " extends PBEnum\n{\n";
+                	
                 $this->_create_class_definition($classfile['value'], $string);
                 $this->c_types[$classfile['name']] = 'PBEnum';
             }
@@ -95,6 +129,7 @@ class PBParser
 
             $string .= "}\n";
         }
+        
         file_put_contents($filename, '<?php' . "\n" . $string . '?>');
     }
 	
@@ -109,7 +144,18 @@ class PBParser
 			return $this->scalar_types[$field['value']['type']];
 		else if (isset($this->c_types[$field['value']['namespace']]))
 			return $this->c_types[$field['value']['namespace']];
-		return $this->c_types[$field['value']['type']];
+		else if (isset($this->c_types[$field['value']['type']]))			
+			return $this->c_types[$field['value']['type']];
+			
+		// nothing found so search in imports
+		foreach ($this->parsers as $parser)
+		{
+			$ret = $parser->_get_type($field);
+			if ($ret != false)
+				return $ret;
+		}
+			
+		return false;			
 	}
 	
     /**
@@ -245,7 +291,11 @@ class PBParser
      */
     private function _create_class_constructor($classfile, &$string, $classname)
     {
-        $string .= '  var $wired_type = \PBMessage::WIRED_LENGTH_DELIMITED;' . "\n";
+    	if ($this->namespace)    	    
+        	$string .= '  var $wired_type = \PBMessage::WIRED_LENGTH_DELIMITED;' . "\n";
+        else
+        	$string .= '  var $wired_type = PBMessage::WIRED_LENGTH_DELIMITED;' . "\n";
+        	
         $string .= "  public function __construct(" . '$reader=null'  . ")\n  {\n";
         $string .= "    parent::__construct(" . '$reader'  . ");\n";
 
@@ -292,7 +342,8 @@ class PBParser
             if (!isset($field['value']['repeated']) && isset($field['value']['optional'])
                     && isset($field['value']['default']))
             {
-            	$classtype = str_replace("\\\\", "\\", $classtype); // when createing object - it should not be escaped 
+            	if (!empty($this->namespace))
+            		$classtype = str_replace("\\\\", "\\", $classtype); // when createing object - it should not be escaped 
             	
                 $string .= '    $this->values["' . $field['value']['value'] . '"] = new ' . $classtype . "();\n";
                 if (isset($this->scalar_types[strtolower($_classtype)]))
@@ -356,7 +407,7 @@ class PBParser
                 $name = $this->_next($string);
                 
                 // Use namespace only if php 5.3 or newer
-                if (version_compare(PHP_VERSION, '5.3', '>'))
+                if ($this->isPHP5_3)
                 	$this->namespace = str_replace(".", "\\\\", trim($name, ";"));
                 
                 //ignoring
@@ -364,6 +415,32 @@ class PBParser
                 $offset = strlen($name);
                 $string = '' . trim(substr($string, $offset));
             }
+            else if( strtolower($next) == 'import' )
+            {
+                $name = $this->_next($string);
+                $match = preg_match('/"([^"]+)";*\s?/', $string, $matches, PREG_OFFSET_CAPTURE);
+                if( !$match )
+                  throw new Exception( 'Malformed include / look at your import statement:' . $string );
+			
+                $fn = $matches[1][0];
+                if( !file_exists($fn) )
+                {
+                  throw new Exception( "Included file '{$fn}' does not exist" );
+                }
+
+                $string = trim(substr($string, $matches[0][1] + strlen($matches[0][0])));
+
+                // parse the imported file
+                $pbp = new PBParser();
+                $pbp->parse( $fn );
+				
+				// ad the parser to parser array
+				$this->parsers[] = $pbp;
+				
+                // add imported message types so PBParser knows about them
+                $this->m_types_imported = array_merge( $this->m_types_imported, $pbp->m_types );
+                $this->requires[] = $pbp->created_php_file_name;
+            }            
             else
             {
                 // now a normal field
@@ -455,6 +532,28 @@ class PBParser
         	$nameprefix = trim("$tempPath.$type", '.');        		
         	
         	if (isset($this->m_types[$nameprefix]))
+        		return array($type, $nameprefix);
+        		
+        	if (empty($tempPath))
+        		break;
+	        			
+	        $nameprefix = $tempPath;
+	        $apath = explode("\.", $tempPath);		        
+	        array_pop($apath);
+	        $tempPath = join(".", $apath);        			         
+        }       
+        
+        // Now again for imported message types
+        // absolute or relative thing
+        // calculate namespace
+        $nameprefix = '';
+       
+        $tempPath = $path;
+        while (true) 
+        {        		
+        	$nameprefix = trim("$tempPath.$type", '.');        		
+        	
+        	if (isset($this->m_types_imported[$nameprefix]))
         		return array($type, $nameprefix);
         		
         	if (empty($tempPath))
