@@ -3,7 +3,7 @@
  * Including of all files needed to parse messages
  * @author Nikolai Kordulla
  */
-use com\face\messages;
+
 require_once(dirname(__FILE__). '/' . 'encoding/pb_base128.php');
 require_once(dirname(__FILE__). '/' . 'type/pb_scalar.php');
 require_once(dirname(__FILE__). '/' . 'type/pb_enum.php');
