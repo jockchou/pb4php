@@ -7,52 +7,59 @@ class PBParser
 {
     // the message types array of (field, param[]='repeated,required,optional')
     var $m_types = array();
-
-    // the IMPORTED message types array of (field, param[]='repeated,required,optional')
-    var $m_types_imported = array();
-
+    
     // the message classtype
     var $c_types = array();
-
-    // different types
-    var $scalar_types = array('double', 'float', 'int32' => 'PBInt', 'int64' => 'PBInt',
-                              'uint32', 'uint64', 'sint32' => 'PBSignedInt', 'sint64' => 'PBSignedInt',
-                              'fixed32', 'fixed64', 'sfixed32', 'sfixed64',
-                              'bool' => 'PBBool', 'string' => 'PBString', 'bytes' => 'PBString');
-	
-	// the created filename
-    var $created_php_file_name;
-
-	// the requires
-    var $requires = array();
+       
+    // different typess
+    var $scalar_types = array('double' 	 => 'PB64Bit',
+    						  'float'	 => 'PB32Bit',
+    						  'int32' 	 => 'PBInt',
+    						  'int64' 	 => 'PBInt',
+                              'uint32' 	 => 'PBInt',
+    						  'uint64' 	 => 'PBInt',
+    						  'sint32' 	 => 'PBSignedInt',
+    						  'sint64' 	 => 'PBSignedInt',
+    	                      'fixed32'  => 'PB32Bit',
+    						  'fixed64'  => 'PB64Bit',
+    						  'sfixed32' => 'PB32Bit', 
+    						  'sfixed64' => 'PB64Bit',
+                              'bool' 	 => 'PBBool', 
+                              'string' 	 => 'PBString', 
+                              'bytes' 	 => 'PBBytes',
+    						  'enum'	 => 'PBEnum');
     
-    // parser array
-    var $parsers = array();
+    var $namespace = "";       
 
     /**
      * parses the profile and generates a filename with the name
      * pb_proto_[NAME]
      * @param String $protofile - the protofilename with the path
      */
-    public function parse($protofile)
-    {
-        $string = file_get_contents($protofile);
+    public function parse($protofile, $outputfile = null)
+    { 	    
+        $string = file_get_contents($protofile);        
+        
         // now take the filename
         //$filename = str_replace("\\", "/", $filename);
-        $filename = split("/", $protofile);
+        $filename = explode("/", $protofile);
         $filename = $filename[count($filename) - 1];
         // strip the comments out of the protofile
         $this->_strip_comments($string);
         $string = trim($string);
         $this->_parse_message_type($string, '');
-        unset($this->m_types[count($this->m_types)-1]);
+        $keys = array_keys($this->m_types);        
+        unset($this->m_types[$keys[count($keys) -1]]);
         //$this->m_types = $this->m_types[0]['value'];
         // now create file with classes
-        $name = split('\.', $filename);
+        $name = explode('\.', $filename);
         array_pop($name);
         $name = join($name, '.');
-        $this->created_php_file_name = 'pb_proto_' . $name . '.php';
-        $this->_create_class_file( $this->created_php_file_name );
+        
+        if (empty($outputfile))
+        	$outputfile = 'pb_proto_' . $name . '.php';
+        
+        $this->_create_class_file($outputfile);
     }
 
     /**
@@ -63,20 +70,23 @@ class PBParser
     private function _create_class_file($filename)
     {
         $string = '';
+        if (!empty($this->namespace))
+        	$string .= "namespace " . str_replace("\\\\", "\\", $this->namespace) .";\n";
+        	
         foreach ($this->m_types as $classfile)
         {
             $classname = str_replace(".", "_", $classfile['name']);
 
             if ($classfile['type'] == 'message')
             {
-                $string .= 'class ' . $classname  . " extends PBMessage\n{\n";
+                $string .= 'class ' . $classname  . " extends \PBMessage\n{\n";
                 $this->_create_class_constructor($classfile['value'], $string, $classname);
                 $this->_create_class_body($classfile['value'], $string, $classname);
                 $this->c_types[$classfile['name']] = 'PBMessage';
             }
             else if ($classfile['type'] == 'enum')
             {
-                $string .= 'class ' . $classname  . " extends PBEnum\n{\n";
+                $string .= 'class ' . $classname  . " extends \PBEnum\n{\n";
                 $this->_create_class_definition($classfile['value'], $string);
                 $this->c_types[$classfile['name']] = 'PBEnum';
             }
@@ -85,14 +95,6 @@ class PBParser
 
             $string .= "}\n";
         }
-
-        $requires_string = "";
-        foreach( $this->requires as $file )
-        {
-          $requires_string .= sprintf( "require_once( \"%s\" );\n", $file );
-        }
-
-        $string = $requires_string . $string;
         file_put_contents($filename, '<?php' . "\n" . $string . '?>');
     }
 	
@@ -107,18 +109,7 @@ class PBParser
 			return $this->scalar_types[$field['value']['type']];
 		else if (isset($this->c_types[$field['value']['namespace']]))
 			return $this->c_types[$field['value']['namespace']];
-		else if (isset($this->c_types[$field['value']['type']]))
-			return $this->c_types[$field['value']['type']];
-			
-		// nothing found so search in imports
-		foreach ($this->parsers as $parser)
-		{
-			$ret = $parser->_get_type($field);
-			if ($ret != false)
-				return $ret;
-		}
-			
-		return false;
+		return $this->c_types[$field['value']['type']];
 	}
 	
     /**
@@ -145,7 +136,7 @@ class PBParser
                 $string .= '  function append_' .  $field['value']['name'] . '($value)' . "\n  {\n";
                 $string .= '    $v = $this->_add_arr_value("' . $field['value']['value'] . '");'  . "\n";
                 $string .= '    $v->set_value($value);' . "\n";;
-                $string .= "  }\n";
+                $string .= "  }\n";                
 
                 $string .= '  function set_' .  $field['value']['name'] . '($index, $value)' . "\n  {\n";
                 $string .= '    $v = new $this->fields["' . $field['value']['value'] . '"]();' . "\n";
@@ -157,9 +148,13 @@ class PBParser
                 $string .= '    $this->_remove_last_arr_value("' . $field['value']['value'] . '");'  . "\n";
                 $string .= "  }\n";
 
-                $string .= '  function ' . $field['value']['name'] . '_size()' . "\n  {\n";
+                $string .= '  function ' . $field['value']['name'] . 's_size()' . "\n  {\n";
                 $string .= '    return $this->_get_arr_size("' . $field['value']['value'] . '");'  . "\n";
                 $string .= "  }\n";
+                
+                $string .= '  function get_' . $field['value']['name'] . 's()' . "\n  {\n";
+                $string .= '    return $this->_get_value("' . $field['value']['value'] . '");'  . "\n";
+                $string .= "  }\n";                               
 			}			
             else if (isset($field['value']['repeated']))
             {
@@ -174,14 +169,22 @@ class PBParser
                 $string .= '  function set_' .  $field['value']['name'] . '($index, $value)' . "\n  {\n";
                 $string .= '    $this->_set_arr_value("' . $field['value']['value'] . '", $index, $value);'  . "\n";
                 $string .= "  }\n";
+                
+                $string .= '  function set_all_' . $field['value']['name'] . 's($values)' . "\n  {\n";
+                $string .= '    return $this->_set_arr_values("' . $field['value']['value'] . '", $values);'  . "\n";
+                $string .= "  }\n";
 
                 $string .= '  function remove_last_' .  $field['value']['name'] . '()' . "\n  {\n";
                 $string .= '    $this->_remove_last_arr_value("' . $field['value']['value'] . '");'  . "\n";
                 $string .= "  }\n";
 
-                $string .= '  function ' . $field['value']['name'] . '_size()' . "\n  {\n";
+                $string .= '  function ' . $field['value']['name'] . 's_size()' . "\n  {\n";
                 $string .= '    return $this->_get_arr_size("' . $field['value']['value'] . '");'  . "\n";
                 $string .= "  }\n";
+                
+                $string .= '  function get_' . $field['value']['name'] . 's()' . "\n  {\n";
+                $string .= '    return $this->_get_value("' . $field['value']['value'] . '");'  . "\n";
+                $string .= "  }\n";                               
             }
             else
             {
@@ -191,7 +194,14 @@ class PBParser
 
                 $string .= '  function set_' .  $field['value']['name'] . '($value)' . "\n  {\n";
                 $string .= '    return $this->_set_value("' . $field['value']['value'] . '", $value);'  . "\n";
-                $string .= "  }\n";
+                $string .= "  }\n";                
+                
+                if ($type == 'PBEnum')
+                {
+                	$string .= '  function ' . $field['value']['name'] . "_string()\n  {\n";
+                	$string .= '    return $this->values["' . $field['value']['value'] . '"]->get_description();'  . "\n";
+                	$string .= "  }\n";
+                }
             }
         }
     }
@@ -203,11 +213,27 @@ class PBParser
      */
     private function _create_class_definition($classfile, &$string)
     {
+    	$ctorStr = '  public function __construct($reader=null)' .
+    			   "\n  {\n   \t" . 'parent::__construct($reader);' ."\n";
+					    	
+    	$ctorStr .= " \t" . '$this->names = array(';
+    	
+    	$i = 0;
         foreach($classfile as $field)
         {
             $string .= '  const ' . $field['0'] . '  = ' . $field['1'] . ";\n";
+            $ctorStr .= "\n\t\t\t" . $field['1'] . ' => "' . $field['0'] . '"';
+            
+            if ($i < count($classfile) - 1)
+            	$ctorStr .= ",";
+            else
+            	$ctorStr .= ");\n";
+            $i++;
         }
-
+        
+        $ctorStr .= "   }\n";
+        
+        $string .= "\n" . $ctorStr;        								  
     }
 
 
@@ -219,7 +245,7 @@ class PBParser
      */
     private function _create_class_constructor($classfile, &$string, $classname)
     {
-        $string .= '  var $wired_type = PBMessage::WIRED_LENGTH_DELIMITED;' . "\n";
+        $string .= '  var $wired_type = \PBMessage::WIRED_LENGTH_DELIMITED;' . "\n";
         $string .= "  public function __construct(" . '$reader=null'  . ")\n  {\n";
         $string .= "    parent::__construct(" . '$reader'  . ");\n";
 
@@ -228,14 +254,28 @@ class PBParser
             $classtype = "";
             $classtype = $field['value']['type'];
             $classtype = str_replace(".", "_", $classtype);
-            $_classtype = $classtype;
+            $_classtype = $classtype;            
+            
             // create the right namespace
             if (isset($this->scalar_types[strtolower($classtype)]))
+            {
                 $classtype = $this->scalar_types[$classtype];
+                
+                if (!empty($this->namespace))
+                	$classtype = "\\\\$classtype"; 
+            }
             else if ((strpos($classtype, '_') === false))
+            {
                 $classtype = str_replace('.', '_', $field['value']['namespace']);
-
-
+                
+                if (!empty($this->namespace))
+                	$classtype = "\\\\$this->namespace\\\\$classtype";
+            }
+                
+               
+                
+            $fieldName = $field['value']['name'];                       
+                        
             $string .= '    $this->fields["' . $field['value']['value'] . '"] = "' . $classtype . '"' . ";\n";
 
             if (isset($field['value']['repeated']))
@@ -252,6 +292,8 @@ class PBParser
             if (!isset($field['value']['repeated']) && isset($field['value']['optional'])
                     && isset($field['value']['default']))
             {
+            	$classtype = str_replace("\\\\", "\\", $classtype); // when createing object - it should not be escaped 
+            	
                 $string .= '    $this->values["' . $field['value']['value'] . '"] = new ' . $classtype . "();\n";
                 if (isset($this->scalar_types[strtolower($_classtype)]))
                     $string .= '    $this->values["' . $field['value']['value'] . '"]->value = ' . $field['value']['default'] . '' . ";\n";
@@ -259,6 +301,8 @@ class PBParser
                 else
                     $string .= '    $this->values["' . $field['value']['value'] . '"]->value = ' . $classtype . '::' . $field['value']['default'] . '' . ";\n";
             }
+            
+            $string .= '    $this->fieldNames["' . $field['value']['value'] . '"] = "' . $fieldName . '"' . ";\n";
         }
         $string .= "  }\n";
     }
@@ -300,36 +344,25 @@ class PBParser
                 // now extract the content and call parse_message again
                 $content = trim(substr($string, $offset['begin'] + 1, $offset['end'] - $offset['begin'] - 2));
                 // now adding all to myarray
-                $this->m_types[] = array('name' => trim($path . '.' . $name, '.'),
+                $newName = trim($path . '.' . $name, '.');
+                $this->m_types[$newName] = array('name' => $newName,
                                              'type' => 'enum', 'value' => $this->_parse_enum($content));
                 // removing it from string
                 $string = '' . trim(substr($string, $offset['end']));
             }
-            else if( strtolower($next) == 'import' )
-            {
+            else if (strtolower($next) == 'package')
+            {            	
+            	$string = trim(substr($string, strlen($next)));
                 $name = $this->_next($string);
-                $match = preg_match('/"([^"]+)";*\s?/', $string, $matches, PREG_OFFSET_CAPTURE);
-                if( !$match )
-                  throw new Exception( 'Malformed include / look at your import statement:' . $string );
-			
-                $fn = $matches[1][0];
-                if( !file_exists($fn) )
-                {
-                  throw new Exception( "Included file '{$fn}' does not exist" );
-                }
-
-                $string = trim(substr($string, $matches[0][1] + strlen($matches[0][0])));
-
-                // parse the imported file
-                $pbp = new PBParser();
-                $pbp->parse( $fn );
-				
-				// ad the parser to parser array
-				$this->parsers[] = $pbp;
-				
-                // add imported message types so PBParser knows about them
-                $this->m_types_imported = array_merge( $this->m_types_imported, $pbp->m_types );
-                $this->requires[] = $pbp->created_php_file_name;
+                
+                // Use namespace only if php 5.3 or newer
+                if (version_compare(PHP_VERSION, '5.3', '>'))
+                	$this->namespace = str_replace(".", "\\\\", trim($name, ";"));
+                
+                //ignoring
+                // removing it from string
+                $offset = strlen($name);
+                $string = '' . trim(substr($string, $offset));
             }
             else
             {
@@ -343,7 +376,7 @@ class PBParser
         }
 
         // now adding myarray to array
-        $this->m_types[] =  array('name' => $path , 'type' => 'message', 'value' => $myarray);
+        $this->m_types[$path] =  array('name' => $path , 'type' => 'message', 'value' => $myarray);
     }
 
     /**
@@ -414,68 +447,26 @@ class PBParser
 
         // absolute or relative thing
         // calculate namespace
-        $namespace = '';
-        $namespace = $type;
-
-        $apath = split("\.", $path);
-        if ($apath > 1)
-        {
-            array_pop($apath);
-            $namespace = trim(trim(join($apath, '.'), '.') . '.' . $type, '.');
-        }
-
-        // try the namespace
-        foreach ($this->m_types as $message)
-        {
-            if ($message['name'] == $namespace)
-            {
-                return array($type, $namespace);
-            }
-        }
-
-        // now try one deeper
-        $namespace  = trim($path . '.' . $namespace, '.');
-        foreach ($this->m_types as $message)
-        {
-            if ($message['name'] == $namespace)
-            {
-                return array($type, $namespace);
-            }
-        }
-
-
-        // once again for imported message types
-        $namespace = '';
-        $namespace = $type;
-
-        $apath = split("\.", $path);
-        if ($apath > 1)
-        {
-            array_pop($apath);
-            $namespace = trim(trim(join($apath, '.'), '.') . '.' . $type, '.');
-        }
-
-        // try the namespace
-        foreach ($this->m_types_imported as $message)
-        {
-            if ($message['name'] == $namespace)
-            {
-                return array($type, $namespace);
-            }
-        }
-        // now try one deeper
-        $namespace  = trim($path . '.' . $namespace, '.');
-        foreach ($this->m_types_imported as $message)
-        {
-            if ($message['name'] == $namespace)
-            {
-                return array($type, $namespace);
-            }
-        }
-
-
-        // @TODO TYPE CHECK
-        throw new Exception('Protofile type ' . $type . ' unknown!');
+        $nameprefix = '';
+       
+        $tempPath = $path;
+        while (true) 
+        {        		
+        	$nameprefix = trim("$tempPath.$type", '.');        		
+        	
+        	if (isset($this->m_types[$nameprefix]))
+        		return array($type, $nameprefix);
+        		
+        	if (empty($tempPath))
+        		break;
+	        			
+	        $nameprefix = $tempPath;
+	        $apath = explode("\.", $tempPath);		        
+	        array_pop($apath);
+	        $tempPath = join(".", $apath);        			         
+        }       
+           
+        throw new Exception('Protofile type ' . $type . ' unknown!'); 
     }
 
     /**
@@ -490,8 +481,8 @@ class PBParser
             throw new Execption('Semantic error in Enum!');
         foreach ($matches[1] as $match)
         {
-            $split = split("=", $match);
-            $myarray[] = array(trim($split[0]), trim($split[1]));
+            $explode = explode("=", $match);
+            $myarray[] = array(trim($explode[0]), trim($explode[1]));
         }
         return $myarray;
     }
