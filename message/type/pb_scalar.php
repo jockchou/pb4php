@@ -36,5 +36,13 @@ class PBScalar extends PBMessage
 		else
 			return '<![CDATA[' . $this->value . ']]>';
 	}
+	
+	protected function clean()
+	{
+		unset($this->reader);		
+		unset($this->values);
+		unset($this->chunk);
+		unset($this->_d_string);
+	}
 }
 ?>

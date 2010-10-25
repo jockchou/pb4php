@@ -19,6 +19,8 @@ class PB64Bit extends PBScalar
 		
 		$p = unpack("d", $str);
 		$this->value = $p[1];  		
+		
+		$this->clean();
 	}
 
 	/**

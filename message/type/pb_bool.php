@@ -15,6 +15,8 @@ class PBBool extends PBInt
 	{
 		$this->value = $this->reader->next();
 		$this->value = ($this->value != 0) ? 1 : 0;
+		
+		$this->clean();
 	}
 
 }

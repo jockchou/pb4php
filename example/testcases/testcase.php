@@ -28,9 +28,10 @@
 		fclose($fhandle);
 		unset($content);
 		unset($fhandle);
-		$a->__destruct();
+		//$a->__destruct();
 		unset($a);
-		
+		gc_collect_cycles();	
+	
 		//exit;
 		$cnt = 0;
 		print "<br>MEMORY BEFOR:".memory_get_usage()."<br>\n";	
@@ -43,12 +44,13 @@
 			
 			$a = new a();
 			$a->parseFromString($result);
-			$a->__destruct();
+		//	$a->__destruct();
 			unset($a);		
 			fclose($fhandle);
 			unset($fhandle);
 			unset($content);
 			unset($result);	
+			//gc_collect_cycles();
 			print "<br>MEMORY ITERATION:".$cnt.' ' . memory_get_usage()."<br>\n";
 			if ($cnt == 10)
 				break;

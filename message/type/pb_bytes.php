@@ -21,6 +21,8 @@ class PBBytes extends PBScalar
 		$pointer = $this->reader->get_pointer();
 		$this->reader->add_pointer($length);
 		$this->value = $this->reader->get_message_from($pointer);
+		
+		$this->clean();
 	}
 
 	/**

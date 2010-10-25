@@ -19,6 +19,8 @@ class PB32Bit extends PBScalar
 		
 		$p = unpack("f", $str);
 		$this->value = $p[1];  		
+		
+		$this->clean();
 	}
 
 	/**

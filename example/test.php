@@ -15,7 +15,7 @@ $string = file_get_contents('./test.pb');
 $book = new AddressBook();
 $book->parseFromString($string);
 
-var_dump($book->person_size());
+var_dump($book->persons_size());
 $person = $book->person(0);
 var_dump($person->name());
 $person = $book->person(1);

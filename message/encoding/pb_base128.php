@@ -59,8 +59,7 @@ class base128varint
         {
             $hexstring .= sprintf('%02X', bindec($string));
         }
-		
-		
+
         // now format to hexstring in the right format
         if ($this->modus == 1)
         {
