@@ -543,6 +543,7 @@ class PBParser
 	        $tempPath = join(".", $apath);        			         
         }       
         
+                
         // Now again for imported message types
         // absolute or relative thing
         // calculate namespace
@@ -563,7 +564,44 @@ class PBParser
 	        $apath = explode("\.", $tempPath);		        
 	        array_pop($apath);
 	        $tempPath = join(".", $apath);        			         
-        }       
+        }          
+        
+        
+        //--------------------- ADDED perhaps easier
+        
+    	// absolute or relative thing
+        // calculate namespace
+        $namespace = '';
+        $namespace = $type;
+
+        $apath = split("\.", $path);
+        if ($apath > 1)
+        {
+            array_pop($apath);
+            $namespace = trim(trim(join($apath, '.'), '.') . '.' . $type, '.');
+        }
+
+        // try the namespace
+        foreach ($this->m_types as $message)
+        {
+            if ($message['name'] == $namespace)
+            {
+                return array($type, $namespace);
+            }
+        }
+
+        // now try one deeper
+        $namespace  = trim($path . '.' . $namespace, '.');
+        var_dump($namespace);exit();
+        foreach ($this->m_types as $message)
+        {
+            if ($message['name'] == $namespace)
+            {
+                return array($type, $namespace);
+            }
+        }
+        //--------------------- ADDED END
+     
            
         throw new Exception('Protofile type ' . $type . ' unknown!'); 
     }
