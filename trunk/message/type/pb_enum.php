@@ -15,6 +15,8 @@ class PBEnum extends PBScalar
 	public function ParseFromArray()
 	{
 		$this->value = $this->reader->next();
+		
+		$this->clean();
 	}
 
 	/**
@@ -37,7 +39,10 @@ class PBEnum extends PBScalar
 	
 	public function get_description()
 	{
-		return $this->names[$this->value];
+		if (isset($this->names[$this->value]))
+			return $this->names[$this->value];
+		
+		return "";
 	}
 }
 ?>

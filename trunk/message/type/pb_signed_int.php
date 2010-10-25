@@ -20,7 +20,7 @@ class PBSignedInt extends PBInt
 		if ($saved % 2 == 1)
 		{
 			$this->value = -($this->value);
-		}
+		}				
 	}
 
 	/**

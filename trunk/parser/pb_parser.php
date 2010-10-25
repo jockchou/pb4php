@@ -68,10 +68,14 @@ class PBParser
         unset($this->m_types[$keys[count($keys) -1]]);
         //$this->m_types = $this->m_types[0]['value'];
         // now create file with classes
-        $name = explode('\.', $filename);
-        array_pop($name);
+        $name = explode('.', $filename);
+                
+        if (count($name) > 1)
+        {
+        	array_pop($name);
+        }
         $name = join($name, '.');
-        
+               
         if (empty($outputfile))
         	$outputfile = 'pb_proto_' . $name . '.php';
         	
@@ -185,7 +189,7 @@ class PBParser
                 $string .= "  }\n";                
 
                 $string .= '  function set_' .  $field['value']['name'] . '($index, $value)' . "\n  {\n";
-                $string .= '    $v = new $this->fields["' . $field['value']['value'] . '"]();' . "\n";
+                $string .= '    $v = new self::$fields["' . $classname. '"]["' . $field['value']['value'] . '"]();' . "\n";
                 $string .= '    $v->set_value($value);' . "\n";
                 $string .= '    $this->_set_arr_value("' . $field['value']['value'] . '", $index, $v);'  . "\n";
                 $string .= "  }\n";
@@ -326,7 +330,7 @@ class PBParser
                 
             $fieldName = $field['value']['name'];                       
                         
-            $string .= '    $this->fields["' . $field['value']['value'] . '"] = "' . $classtype . '"' . ";\n";
+            $string .= '    self::$fields["' . $classname. '"]["' . $field['value']['value'] . '"] = "' . $classtype . '"' . ";\n";
 
             if (isset($field['value']['repeated']))
             {
@@ -353,7 +357,7 @@ class PBParser
                     $string .= '    $this->values["' . $field['value']['value'] . '"]->value = ' . $classtype . '::' . $field['value']['default'] . '' . ";\n";
             }
             
-            $string .= '    $this->fieldNames["' . $field['value']['value'] . '"] = "' . $fieldName . '"' . ";\n";
+            $string .= '    self::$fieldNames["' . $classname. '"]["' . $field['value']['value'] . '"] = "' . $fieldName . '"' . ";\n";
         }
         $string .= "  }\n";
     }
@@ -538,12 +542,11 @@ class PBParser
         		break;
 	        			
 	        $nameprefix = $tempPath;
-	        $apath = explode("\.", $tempPath);		        
+	        $apath = explode(".", $tempPath);		        
 	        array_pop($apath);
 	        $tempPath = join(".", $apath);        			         
         }       
         
-                
         // Now again for imported message types
         // absolute or relative thing
         // calculate namespace
@@ -564,12 +567,11 @@ class PBParser
 	        $apath = explode("\.", $tempPath);		        
 	        array_pop($apath);
 	        $tempPath = join(".", $apath);        			         
-        }          
+        }       
         
+             //--------------------- ADDED perhaps easier
         
-        //--------------------- ADDED perhaps easier
-        
-    	// absolute or relative thing
+        // absolute or relative thing
         // calculate namespace
         $namespace = '';
         $namespace = $type;
@@ -601,7 +603,6 @@ class PBParser
             }
         }
         //--------------------- ADDED END
-     
            
         throw new Exception('Protofile type ' . $type . ' unknown!'); 
     }

@@ -15,6 +15,8 @@ class PBInt extends PBScalar
 	public function ParseFromArray()
 	{
 		$this->value = $this->reader->next();
+		
+		$this->clean();
 	}
 
 	/**
